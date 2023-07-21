@@ -53,7 +53,7 @@ def get_and_process_data(data_dir):
     color = np.array(Image.open(os.path.join(data_dir, 'color.png')), dtype=np.float32) / 255.0
     depth = np.array(Image.open(os.path.join(data_dir, 'depth.png')))
     workspace_mask = np.array(Image.open(os.path.join(data_dir, 'workspace_mask.png')))
-    meta = scio.loadmat(os.path.join(data_dir, 'meta.mat'))
+    meta = scio.loadmat("/home/iclab/work/graspnet-baseline/doc/motor_data/meta.mat") #(os.path.join(data_dir, 'meta.mat'))
     intrinsic = meta['intrinsic_matrix']
     factor_depth = meta['factor_depth']
 
@@ -120,5 +120,6 @@ def demo(data_dir):
     vis_grasps(gg, cloud)
 
 if __name__=='__main__':
-    data_dir = 'doc/example_data'
+    # data_dir = 'doc/example_data'
+    data_dir = 'doc/motor_data/test6' #1~6
     demo(data_dir)
