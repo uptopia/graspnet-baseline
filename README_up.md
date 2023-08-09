@@ -12,6 +12,10 @@ use 'pip install scikit-learn' rather than 'pip install sklearn'
 sudo apt update
 sudo pip3 uninstall scikit-learn
 sudo pip3 install scikit-learn (version1.3.0)
+or 
+pip3 install scikit-learn
+
+sudo pip3 install .
 
 cd /home/upup/graspnet-baseline/pointnet2
 sudo python3 setup.py install
@@ -20,7 +24,7 @@ cd /home/upup/graspnet-baseline/knn
 sudo python3 setup.py install
 
 cd /home/upup/graspnet-baseline
-CUDA_VISIBLE_DEVICES=1 python3 demo.py --checkpoint_path logs/checkpoint-rs.tar
+su
 
 *ERROR
 AttributeError: module 'numpy' has no attribute 'float'.
@@ -40,12 +44,22 @@ https://stackoverflow.com/questions/49407303/runtimeerror-expected-object-of-typ
 
 np.float64 change back to np.float32 (if numpy==1.23.5)
 (if numpy==1.24 np.float32 is deprecated)
+sudo pip3 install numpy==1.23.5
 
-*ERROR
+*WARNING but install able to execute
 root:autolab_core not installed as catkin package
 https://www.google.com/search?q=root%3Aautolab_core+not+installed+as+catkin+package&oq=root%3Aautolab_core+not+installed+as+catkin+package&aqs=edge..69i57j69i58j69i64.416j0j4&sourceid=chrome&ie=UTF-8
 
-sudo pip3 install autolab_core
+<!-- cd /home/upup/graspnet-baseline/
+mkdir src
+git clone https://github.com/BerkeleyAutomation/autolab_core.git
+vim package.xml
+change 1.1.0 to 1.1.1
+cd /home/upup/graspnet-baseline/
+catkin_make
+. devel/setup.bash -->
+
+#sudo pip3 install autolab_core
 https://berkeleyautomation.github.io/autolab_core/install/install.html
 
 

@@ -120,6 +120,6 @@ def demo(data_dir):
     vis_grasps(gg, cloud)
 
 if __name__=='__main__':
-    # data_dir = 'doc/example_data'
-    data_dir = 'doc/motor_data/test6' #1~6
+    data_dir = 'doc/example_data'
+    # data_dir = 'doc/motor_data/test6' #1~6
     demo(data_dir)
