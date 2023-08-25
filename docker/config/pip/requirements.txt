@@ -19,12 +19,12 @@ tqdm==4.65.0
 # matplotlib==3.6#3.7.2
 # scikit-image==0.19.0#0.21.0
 
-numpy==1.24.4 #1.23.5 change
+numpy==1.23.5 # 1.24.4 prev
 pandas==2.0.3
 matplotlib==3.7.2
 scikit-image==0.21.0
 
 autolab_core
-
+psutil
 # setuptools==58.2.0 #45.2.0
 # opencv-python-headless

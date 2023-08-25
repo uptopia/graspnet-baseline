@@ -2,9 +2,9 @@
 
 # Get dependent parameters
 source "$(dirname "$(readlink -f "${0}")")/get_param.sh"
+IMAGE="grasp_net_new"
 
-docker run --rm \
-    --privileged \
+docker run --privileged \
     --network=host \
     --ipc=host \
     ${GPU_FLAG} \
@@ -17,5 +17,6 @@ docker run --rm \
     -v /etc/localtime:/etc/localtime:ro \
     -v /dev:/dev \
     -v ${WS_PATH}:/home/${user}/work \
-    -it --name "${CONTAINER}" "${DOCKER_HUB_USER}"/"${IMAGE}"
+    -it --name grasp_net "${DOCKER_HUB_USER}"/"${IMAGE}"
+    #-it --name "${CONTAINER}" "${DOCKER_HUB_USER}"/"${IMAGE}"
 

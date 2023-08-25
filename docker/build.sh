@@ -5,6 +5,7 @@ export DOCKER_BUILDKIT=1
 
 # Get dependent parameters
 source "$(dirname "$(readlink -f "${0}")")/get_param.sh"
+IMAGE="grasp_net_new"
 
 # Build docker images
 docker build -t "${DOCKER_HUB_USER}"/"${IMAGE}" \
