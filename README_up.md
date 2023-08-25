@@ -62,6 +62,28 @@ catkin_make
 #sudo pip3 install autolab_core
 https://berkeleyautomation.github.io/autolab_core/install/install.html
 
+### Run demo code
+Try your own data by modifying `get_and_process_data()` in demo.py. 
+Refer to `doc/example_data/` for data preparation. 
+`RGB-D images` and `camera intrinsics` are required for inference. 
+`factor_depth` stands for the scale for depth value to be transformed into meters. 
+You can also add a `workspace mask` for denser output.
+
+```
+data_dir = 'doc/example_data'
+demo(data_dir)
+```
+
+CUDA_VISIBLE_DEVICES=0 python3 demo.py --checkpoint_path logs/checkpoint-rs.tar
+
+### Run demo code with own data
+
+### test 
+
+### test graspnetAPI
+## download dataset and extract data as the defined structure
+https://graspnet.net/datasets.html
+
 
 
 
