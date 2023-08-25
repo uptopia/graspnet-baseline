@@ -2,7 +2,7 @@
 
 # Get dependent parameters
 source "$(dirname "$(readlink -f "${0}")")/get_param.sh"
-IMAGE="grasp_net_new"
+IMAGE="grasp_net"
 
 docker run --privileged \
     --network=host \

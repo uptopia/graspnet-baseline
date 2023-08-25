@@ -71,31 +71,10 @@ RUN apt update \
         build-essential \
         software-properties-common \
         apt-transport-https \
-    && add-apt-repository ppa:deadsnakes/ppa -y \
-    && apt install -y --no-install-recommends \
-        python3.9 \
-        python3.9-dev \
-        python3.9-distutils \
-    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.9 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 3 \
+        python3-netifaces \
+        python3-apt \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
-
-    #https://bobbyhadz.com/blog/python-importerror-cannot-import-name-html5lib-from-pip-vendor
-    # # && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
-    # && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2 \
-    # && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 3 \
-    # # && apt update \
-    # # && apt install -y --no-install-recommends \
-    # #     # * base tools
-    # #     python3-pip \
-    # #     python3-dev \
-    # #     python3-setuptools \
-    # #     # python3.10-distutils \
-    # #     build-essential \
-    # && apt clean \
-    # && rm -rf /var/lib/apt/lists/*
 
 RUN ./config/pip/pip_setup.sh
 
@@ -109,23 +88,29 @@ RUN pip3 install --upgrade --force-reinstall pip && \
     -f  https://download.pytorch.org/whl/cu111/torch_stable.html
 
 
+# # * Install ROS noetic
+# RUN echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > \
+#     /etc/apt/sources.list.d/ros-latest.list \
+#     && apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' \
+#     --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654 \
+#     && curl -sSL \
+#     'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0xC1CF6E31E6BADE8868B172B4F42ED6FBAB17C654' \
+#     | sudo apt-key add - \
+#     && apt update && apt install -y --no-install-recommends ros-noetic-desktop-full \
+#     && apt-get clean \
+#     && rm -rf /var/lib/apt/lists/*
+
 # * Install ROS noetic
-RUN echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > \
-    /etc/apt/sources.list.d/ros-latest.list \
-    && apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' \
-    --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654 \
-    && curl -sSL \
-    'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0xC1CF6E31E6BADE8868B172B4F42ED6FBAB17C654' \
-    | sudo apt-key add - \
-    && apt update && apt install -y --no-install-recommends ros-noetic-desktop-full \
+RUN echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list \
+    && curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add - \
+    && apt update \
+    && dpkg --configure -a \
+    && apt install -y -f --fix-broken --no-install-recommends ros-noetic-desktop-full \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 ENV ROS_DISTRO noetic
 
-# RUN apt install python3-apt \ 
-#     && apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE \
-#     && add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" -u
 RUN mkdir -p /etc/apt/keyrings \
     && curl -sSf https://librealsense.intel.com/Debian/librealsense.pgp | sudo tee /etc/apt/keyrings/librealsense.pgp > /dev/null \
     && echo "deb [signed-by=/etc/apt/keyrings/librealsense.pgp] https://librealsense.intel.com/Debian/apt-repo `lsb_release -cs` main" | \
@@ -145,7 +130,6 @@ RUN apt update \
         librealsense2-dkms \
         # * Install realsense sdk
         ros-$ROS_DISTRO-realsense2-camera \
-        python3-netifaces \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -169,14 +153,12 @@ RUN sudo mkdir -p /home/"${USER}"/realsense_ros/src
 WORKDIR /home/"${USER}"/realsense_ros/src
 RUN sudo git clone https://github.com/IntelRealSense/realsense-ros.git
 WORKDIR /home/"${USER}"/realsense_ros/src/realsense-ros/
-#RUN sudo git checkout `git tag | sort -V | grep -P "^2.\d+\.\d+" | tail -1`
 RUN sudo git checkout ros1-legacy
+
 WORKDIR /home/"${USER}"/realsense_ros/src/
-# RUN sudo /opt/ros/noetic/bin/catkin_init_workspace
 RUN sudo /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_init_workspace'
 
 WORKDIR /home/"${USER}"/realsense_ros/
-#RUN sudo /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_make clean'
 RUN sudo /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_make clean; catkin_make -DCATKIN_ENABLE_TESTING=False -DCMAKE_BUILD_TYPE=Release; catkin_make install'
 RUN sudo echo "source /home/"${USER}"/realsense_ros/devel/setup.bash" >> ~/.bashrc
 
@@ -209,7 +191,7 @@ WORKDIR /home/"${USER}"/work
 # * Make SSH available
 EXPOSE 22
 
-#ENTRYPOINT [ "/entrypoint.sh", "terminator" ]
+ENTRYPOINT [ "/entrypoint.sh", "terminator" ]
 # ENTRYPOINT [ "/entrypoint.sh", "tmux" ]
-ENTRYPOINT [ "/entrypoint.sh", "bash" ]
+# ENTRYPOINT [ "/entrypoint.sh", "bash" ]
 # ENTRYPOINT [ "/entrypoint.sh" ]
