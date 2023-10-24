@@ -20,7 +20,7 @@ setup(
     name='pointnet2',
     ext_modules=[
         CUDAExtension(
-            name='pointnet2._ext',
+            name='pointnet2._ext_src',
             sources=_ext_sources,
             extra_compile_args={
                 "cxx": ["-O2", "-I{}".format("{}/{}/include".format(ROOT, _ext_src_root))],

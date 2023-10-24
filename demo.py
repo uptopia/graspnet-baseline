@@ -14,7 +14,7 @@ from PIL import Image
 import torch
 from graspnetAPI import GraspGroup
 
-import pyrealsense2 as rs
+# import pyrealsense2 as rs
 import cv2
 import matplotlib.pyplot as plt
 
@@ -41,15 +41,28 @@ def get_net():
     # Init the model
     net = GraspNet(input_feature_dim=0, num_view=cfgs.num_view, num_angle=12, num_depth=4,
             cylinder_radius=0.05, hmin=-0.02, hmax_list=[0.01,0.02,0.03,0.04], is_training=False)
+    
+    # Check device (GPU/CPU)
+    #https://www.cnblogs.com/xiaodai0/p/10413711.html
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     net.to(device)
-    # Load checkpoint
-    checkpoint = torch.load(cfgs.checkpoint_path)
+
+    print("torch.cuda.is_available() = {}, use device: {}".format(torch.cuda.is_available(), device))
+    
+    # Load model checkpoint
+    if torch.cuda.is_available() == False:
+        print('use cpu')
+        checkpoint = torch.load(cfgs.checkpoint_path, map_location=torch.device('cpu'))
+    else:
+        print('use gpu')
+        checkpoint = torch.load(cfgs.checkpoint_path)
     net.load_state_dict(checkpoint['model_state_dict'])
     start_epoch = checkpoint['epoch']
     print("-> loaded checkpoint %s (epoch: %d)"%(cfgs.checkpoint_path, start_epoch))
-    # set model to eval mode
+    
+    # Set model to Eval mode
     net.eval()
+    
     return net
 
 def get_and_process_data(data_dir):
@@ -191,15 +204,15 @@ def cam_input():
 
 if __name__=='__main__':
     
-    #======Method1=======#
-    # Use Streamed Images
-    #====================#
-    cam_input()
-    data_dir = 'doc/stream_rs'
-    demo(data_dir)
-
-    # #======Method2=======#
-    # # Use Saved Images
+    # #======Method1=======#
+    # # Use Streamed Images
     # #====================#
-    # data_dir = 'doc/example_data' #'doc/motor_data/test6' #1~6
+    # cam_input()
+    # data_dir = 'doc/stream_rs'
     # demo(data_dir)
+
+    #======Method2=======#
+    # Use Saved Images
+    #====================#
+    data_dir = 'doc/example_data' #'doc/motor_data/test6' #1~6
+    demo(data_dir)

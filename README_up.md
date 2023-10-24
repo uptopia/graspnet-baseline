@@ -17,9 +17,10 @@ sudo pip3 install scikit-learn (version1.3.0)
 or   
 pip3 install scikit-learn  
 
-sudo pip3 install .  ???? 
-
 ---------------  
+
+cd /home/upup/graspnetAPI
+sudo pip3 install .
 
 cd /home/upup/graspnet-baseline/pointnet2  
 sudo python3 setup.py install  
@@ -27,23 +28,22 @@ sudo python3 setup.py install
 cd /home/upup/graspnet-baseline/knn  
 sudo python3 setup.py install  
 
-cd /home/upup/graspnet-baseline  
-su  
-
 *ERROR  
 AttributeError: module 'numpy' has no attribute 'float'.  
-
 sudo pip3 install numpy==1.23.5  
 
 *Error  
 CUDA device but torch.cuda.is_available() is False.  
-
 install checkpoint_path to logs folder, see command_demo.sh  
 
+cd /home/upup/graspnet-baseline  
 執行程式  
+chmod +x command_demo_test.sh  
 ./command_demo_test.sh  
 or  
-CUDA_VISIBLE_DEVICES=0 python3 demo.py --checkpoint_path logs/checkpoint-rs.tar  
+CUDA_VISIBLE_DEVICES=0 python3 demo.py --checkpoint_path logs/log_rs/checkpoint-rs.tar  
+
+sudo pip3 install pyrealsense2  
 
 *ERROR  
 RuntimeError: points must be a float tensor  
@@ -56,6 +56,13 @@ sudo pip3 install numpy==1.23.5
 *WARNING but install able to execute  
 root:autolab_core not installed as catkin package  
 https://www.google.com/search?q=root%3Aautolab_core+not+installed+as+catkin+package&oq=root%3Aautolab_core+not+installed+as+catkin+package&aqs=edge..69i57j69i58j69i64.416j0j4&sourceid=chrome&ie=UTF-8  
+
+*ERROR  
+AttributeError: module 'pointnet2._ext_src' has no attribute 'furthest_point_sampling'  
+要改setup.py  
+_ext_src_root = "_ext_src"  
+CUDAExtension(  
+    name='pointnet2._ext_src',  
 
 <!-- cd /home/upup/graspnet-baseline/
 mkdir src
@@ -81,7 +88,8 @@ data_dir = 'doc/example_data'
 demo(data_dir)  
 ```
 
-CUDA_VISIBLE_DEVICES=0 python3 demo.py --checkpoint_path logs/checkpoint-rs.tar  
+CUDA_VISIBLE_DEVICES=0 python3 demo.py --checkpoint_path logs/checkpoint-rs.tar 
+(CUDA_VISIBLE_DEVICES=1 use CPU) 
 
 ### Run demo code with own data
 
