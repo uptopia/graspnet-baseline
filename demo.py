@@ -14,7 +14,7 @@ from PIL import Image
 import torch
 from graspnetAPI import GraspGroup
 
-# import pyrealsense2 as rs
+import pyrealsense2 as rs
 import cv2
 import matplotlib.pyplot as plt
 
@@ -143,63 +143,63 @@ def demo(data_dir):
         gg = collision_detection(gg, np.array(cloud.points))
     vis_grasps(gg, cloud)
 
-# def cam_input():
-#     # create a pipline
-#     pipeline = rs.pipeline()
+def cam_input():
+    # create a pipline
+    pipeline = rs.pipeline()
 
-#     # create a config obj to configure the pipeline
-#     config = rs.config()
-#     config.enable_stream(rs.stream.depth, 1024, 768, rs.format.z16, 30)
-#     config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)
+    # create a config obj to configure the pipeline
+    config = rs.config()
+    config.enable_stream(rs.stream.depth, 1024, 768, rs.format.z16, 30)
+    config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)
 
-#     # start the pipeline
-#     pipeline.start(config)
-#     align = rs.align(rs.stream.color) #align obj for depth-color
+    # start the pipeline
+    pipeline.start(config)
+    align = rs.align(rs.stream.color) #align obj for depth-color
 
-#     try:
-#         while True:
-#             #wait for coherent pair of frams: color & depth
-#             frames = pipeline.wait_for_frames()
-#             aligned_frames = align.process(frames)
-#             if not aligned_frames:
-#                 continue
+    try:
+        while True:
+            #wait for coherent pair of frams: color & depth
+            frames = pipeline.wait_for_frames()
+            aligned_frames = align.process(frames)
+            if not aligned_frames:
+                continue
 
-#             color_frame = aligned_frames.get_color_frame()
-#             aligned_depth_frame =  aligned_frames.get_depth_frame()
+            color_frame = aligned_frames.get_color_frame()
+            aligned_depth_frame =  aligned_frames.get_depth_frame()
 
-#             if not color_frame or not aligned_depth_frame:
-#                 continue
+            if not color_frame or not aligned_depth_frame:
+                continue
 
-#             #convert frame to np arrays img
-#             color_frame_img = np.asanyarray(color_frame.get_data())
-#             aligned_depth_img = np.asanyarray(aligned_depth_frame.get_data())
+            #convert frame to np arrays img
+            color_frame_img = np.asanyarray(color_frame.get_data())
+            aligned_depth_img = np.asanyarray(aligned_depth_frame.get_data())
             
-#             # display 
-#             aligned_depth_colormap = cv2.applyColorMap(cv2.converScaleAbs(aligned_depth_img, alpha=0.03), cv2.COLORMAP_JET)
-#             cv2.imshow("Align Depth colormap", aligned_depth_colormap)
-#             cv2.imshow("aligned depth image", aligned_depth_img)
-#             cv2.imwrite('/home/iclab/work/graspnet-baseline/doc/stream_rs/depth.png', aligned_depth_img)
+            # display 
+            aligned_depth_colormap = cv2.applyColorMap(cv2.converScaleAbs(aligned_depth_img, alpha=0.03), cv2.COLORMAP_JET)
+            cv2.imshow("Align Depth colormap", aligned_depth_colormap)
+            cv2.imshow("aligned depth image", aligned_depth_img)
+            cv2.imwrite('/home/iclab/work/graspnet-baseline/doc/stream_rs/depth.png', aligned_depth_img)
 
-#             cv2.imshow("aligned color image", color_frame_img)
-#             cv2.imwrite('/home/iclab/work/graspnet-baseline/doc/stream_rs/color.png', color_frame_img)
+            cv2.imshow("aligned color image", color_frame_img)
+            cv2.imwrite('/home/iclab/work/graspnet-baseline/doc/stream_rs/color.png', color_frame_img)
 
-#             if cv2.waitKey(1) & 0xFF == ord('q'):
-#                 break
-#     finally:
-#         pipeline.stop()
-#         cv2.destroyAllWindows()
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+    finally:
+        pipeline.stop()
+        cv2.destroyAllWindows()
 
 if __name__=='__main__':
     
-    # #======Method1=======#
-    # # Use Streamed Images
-    # #====================#
-    # cam_input()
-    # data_dir = 'doc/stream_rs'
-    # demo(data_dir)
-
-    #======Method2=======#
-    # Use Saved Images
+    #======Method1=======#
+    # Use Streamed Images
     #====================#
-    data_dir = 'doc/example_data' #'doc/motor_data/test6' #1~6
+    cam_input()
+    data_dir = 'doc/stream_rs'
     demo(data_dir)
+
+    # #======Method2=======#
+    # # Use Saved Images
+    # #====================#
+    # data_dir = 'doc/example_data' #'doc/motor_data/test6' #1~6
+    # demo(data_dir)

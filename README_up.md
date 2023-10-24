@@ -1,54 +1,61 @@
 cd docker 
-./build.sh
-./run.sh
+./build.sh  
+./run.sh  
 
-cd /home/upup/graspnetAPI
-sudo pip3 install .
 
-*ERROR
-python setup.py egg_info did not run successfully.
-use 'pip install scikit-learn' rather than 'pip install sklearn'
+cd /home/upup/graspnetAPI  
+sudo pip3 install .  
 
-sudo apt update
-sudo pip3 uninstall scikit-learn
-sudo pip3 install scikit-learn (version1.3.0)
-or 
-pip3 install scikit-learn
+---------------  
+*ERROR  
+python setup.py egg_info did not run successfully.  
+use 'pip install scikit-learn' rather than 'pip install sklearn'  
 
-sudo pip3 install .
+sudo apt update  
+sudo pip3 uninstall scikit-learn  
+sudo pip3 install scikit-learn (version1.3.0)  
+or   
+pip3 install scikit-learn  
 
-cd /home/upup/graspnet-baseline/pointnet2
-sudo python3 setup.py install
+sudo pip3 install .  ???? 
 
-cd /home/upup/graspnet-baseline/knn
-sudo python3 setup.py install
+---------------  
 
-cd /home/upup/graspnet-baseline
-su
+cd /home/upup/graspnet-baseline/pointnet2  
+sudo python3 setup.py install  
 
-*ERROR
-AttributeError: module 'numpy' has no attribute 'float'.
+cd /home/upup/graspnet-baseline/knn  
+sudo python3 setup.py install  
 
-sudo pip3 install numpy==1.23.5
+cd /home/upup/graspnet-baseline  
+su  
 
-*Error
-CUDA device but torch.cuda.is_available() is False.
+*ERROR  
+AttributeError: module 'numpy' has no attribute 'float'.  
 
-install checkpoint_path to logs folder, see command_demo.sh
+sudo pip3 install numpy==1.23.5  
 
-CUDA_VISIBLE_DEVICES=0 python3 demo.py --checkpoint_path logs/checkpoint-rs.tar
+*Error  
+CUDA device but torch.cuda.is_available() is False.  
 
-*ERROR
-RuntimeError: points must be a float tensor
-https://stackoverflow.com/questions/49407303/runtimeerror-expected-object-of-type-torch-doubletensor-but-found-type-torch-fl
+install checkpoint_path to logs folder, see command_demo.sh  
 
-np.float64 change back to np.float32 (if numpy==1.23.5)
-(if numpy==1.24 np.float32 is deprecated)
-sudo pip3 install numpy==1.23.5
+執行程式  
+./command_demo_test.sh  
+or  
+CUDA_VISIBLE_DEVICES=0 python3 demo.py --checkpoint_path logs/checkpoint-rs.tar  
 
-*WARNING but install able to execute
-root:autolab_core not installed as catkin package
-https://www.google.com/search?q=root%3Aautolab_core+not+installed+as+catkin+package&oq=root%3Aautolab_core+not+installed+as+catkin+package&aqs=edge..69i57j69i58j69i64.416j0j4&sourceid=chrome&ie=UTF-8
+*ERROR  
+RuntimeError: points must be a float tensor  
+https://stackoverflow.com/questions/49407303/runtimeerror-expected-object-of-type-torch-doubletensor-but-found-type-torch-fl  
+
+np.float64 change back to np.float32 (if numpy==1.23.5)  
+(if numpy==1.24 np.float32 is deprecated)  
+sudo pip3 install numpy==1.23.5  
+
+*WARNING but install able to execute  
+root:autolab_core not installed as catkin package  
+https://www.google.com/search?q=root%3Aautolab_core+not+installed+as+catkin+package&oq=root%3Aautolab_core+not+installed+as+catkin+package&aqs=edge..69i57j69i58j69i64.416j0j4&sourceid=chrome&ie=UTF-8  
 
 <!-- cd /home/upup/graspnet-baseline/
 mkdir src
@@ -59,22 +66,22 @@ cd /home/upup/graspnet-baseline/
 catkin_make
 . devel/setup.bash -->
 
-#sudo pip3 install autolab_core
-https://berkeleyautomation.github.io/autolab_core/install/install.html
+#sudo pip3 install autolab_core  
+https://berkeleyautomation.github.io/autolab_core/install/install.html  
 
 ### Run demo code
 Try your own data by modifying `get_and_process_data()` in demo.py. 
 Refer to `doc/example_data/` for data preparation. 
 `RGB-D images` and `camera intrinsics` are required for inference. 
 `factor_depth` stands for the scale for depth value to be transformed into meters. 
-You can also add a `workspace mask` for denser output.
+You can also add a `workspace mask` for denser output.  
 
 ```
-data_dir = 'doc/example_data'
-demo(data_dir)
+data_dir = 'doc/example_data'  
+demo(data_dir)  
 ```
 
-CUDA_VISIBLE_DEVICES=0 python3 demo.py --checkpoint_path logs/checkpoint-rs.tar
+CUDA_VISIBLE_DEVICES=0 python3 demo.py --checkpoint_path logs/checkpoint-rs.tar  
 
 ### Run demo code with own data
 
@@ -82,7 +89,7 @@ CUDA_VISIBLE_DEVICES=0 python3 demo.py --checkpoint_path logs/checkpoint-rs.tar
 
 ### test graspnetAPI
 ## download dataset and extract data as the defined structure
-https://graspnet.net/datasets.html
+https://graspnet.net/datasets.html  
 
 
 
