@@ -61,8 +61,15 @@ https://www.google.com/search?q=root%3Aautolab_core+not+installed+as+catkin+pack
 AttributeError: module 'pointnet2._ext_src' has no attribute 'furthest_point_sampling'  
 要改setup.py  
 _ext_src_root = "_ext_src"  
+  
 CUDAExtension(  
-    name='pointnet2._ext_src',  
+    name='pointnet2._ext'  
+  
+Should be changed to  
+  
+CUDAExtension(  
+    name='pointnet2._ext_src'  
+https://github.com/facebookresearch/votenet/issues/108
 
 <!-- cd /home/upup/graspnet-baseline/
 mkdir src
