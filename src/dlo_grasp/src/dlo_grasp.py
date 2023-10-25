@@ -13,6 +13,7 @@ import torch
 import numpy as np
 import open3d as o3d
 from graspnetAPI import GraspGroup
+import message_filters
 
 ROOT_DIR = "/home/iclab/work/graspnet-baseline/" #os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
@@ -45,9 +46,24 @@ class DLO_Grasp():
         #=====Parameters Setting=====#
         self.net = self.get_net()
 
+        # self.o3d_vis = o3d.visualization.Visualizer()
+        # self.o3d_vis.create_window()
+        # self.vis_cloud = o3d.geometry.PointCloud()
+        # self.o3d_vis.add_geometry(self.vis_cloud)#[cloud, *grippers])
+        # # self.vis_grasp = o3d.geometry.li
+        # # o3d.visualization.draw_geometries([cloud, *grippers])
+
         print("nnnnnnnnnnnnnnnnnnnet")
         rospy.init_node('dlo_grasp_pose', anonymous=False)
-        rospy.Subscriber('/dlo_cloud', PointCloud2, self.dlo_grasp_cb)
+        # #----1topic---#
+        # rospy.Subscriber('/dlo_cloud', PointCloud2, self.dlo_grasp_cb)
+ 
+        #----2topics---#
+        dlo_sub = message_filters.Subscriber('/dlo_cloud', PointCloud2)
+        scene_sub = message_filters.Subscriber('/ori_cloud_pub', PointCloud2)
+
+        ts = message_filters.ApproximateTimeSynchronizer([dlo_sub, scene_sub], queue_size=10, slop=10, allow_headerless=False)
+        ts.registerCallback(self.callback)
         rospy.spin()
 
     def get_net(self):
@@ -159,6 +175,11 @@ class DLO_Grasp():
         grippers = gg.to_open3d_geometry_list()
         o3d.visualization.draw_geometries([cloud, *grippers])
 
+        # self.o3d_vis.update_geometry()
+        # self.vis_cloud = cloud
+        # self.o3d_vis.poll_events()
+        # self.o3d_vis.update_renderer()
+
     def dlo_grasp_cb(self, cloud_msg):
         print("dlo_grasp_cb:")
         assert isinstance(cloud_msg, PointCloud2)
@@ -171,6 +192,30 @@ class DLO_Grasp():
         if self.collision_thresh > 0:
             gg = self.collision_detection(gg, np.array(cloud_o3d.points))
         self.vis_grasps(gg, cloud_o3d)
+
+    
+    def callback(self, dlo_msg, scene_msg):
+        print("dlo_grasp_cb:")
+        # print(dlo_msg.header.stamp)
+        # print(scene_msg.header.stamp)
+        assert isinstance(dlo_msg, PointCloud2)
+
+        dlo_gen = point_cloud2.read_points_list(dlo_msg, skip_nans=False)
+        if dlo_gen:
+            end_points, dlo_cloud_o3d = self.process_cloud(dlo_gen)
+
+        scn_gen = point_cloud2.read_points_list(scene_msg, skip_nans=False)
+        if scn_gen:
+            _, scn_cloud_o3d = self.process_cloud(scn_gen)
+    
+        cloud_all = o3d.geometry.PointCloud()
+        cloud_all.points = dlo_cloud_o3d.points #o3d.utility.Vector3dVector(cloud_masked.astype(np.float32))
+        cloud_all.colors = dlo_cloud_o3d.colors #o3d.utility.Vector3dVector(color_masked.astype(np.float32))
+
+        gg = self.get_grasps(end_points)
+        if self.collision_thresh > 0:
+            gg = self.collision_detection(gg, np.array(cloud_all.points))#np.concatenate(np.array(dlo_cloud_o3d.points),np.array(scn_cloud_o3d.points)))
+        self.vis_grasps(gg, cloud_all)
 
 if __name__ == '__main__':
     # DLO_Grasp()
