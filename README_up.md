@@ -95,7 +95,7 @@ data_dir = 'doc/example_data'
 demo(data_dir)  
 ```
 
-CUDA_VISIBLE_DEVICES=0 python3 demo.py --checkpoint_path logs/checkpoint-rs.tar 
+CUDA_VISIBLE_DEVICES=0 python3 demo.py --checkpoint_path logs/logs_rs/checkpoint-rs.tar 
 (CUDA_VISIBLE_DEVICES=1 use CPU) 
 
 ### Run demo code with own data

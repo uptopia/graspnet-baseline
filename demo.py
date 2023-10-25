@@ -19,6 +19,7 @@ import cv2
 import matplotlib.pyplot as plt
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+print("ROOT_DIR: " + ROOT_DIR)
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 sys.path.append(os.path.join(ROOT_DIR, 'dataset'))
 sys.path.append(os.path.join(ROOT_DIR, 'utils'))
