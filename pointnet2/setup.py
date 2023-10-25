@@ -16,6 +16,7 @@ _ext_sources = glob.glob("{}/src/*.cpp".format(_ext_src_root)) + glob.glob(
 )
 _ext_headers = glob.glob("{}/include/*".format(_ext_src_root))
 
+#https://github.com/facebookresearch/votenet/issues/108
 setup(
     name='pointnet2',
     ext_modules=[

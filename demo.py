@@ -108,6 +108,12 @@ def get_and_process_data(data_dir):
     print("cloud_masked:", type(cloud_masked), cloud_masked.shape)
     print("color_masked:", type(color_masked), color_masked.shape)
 
+    # cloud: <class 'numpy.ndarray'> (720, 1280, 3)
+    # mask: <class 'numpy.ndarray'> (720, 1280)
+    # cloud_masked: <class 'numpy.ndarray'> (513688, 3)
+    # color_masked: <class 'numpy.ndarray'> (513688, 3)
+    print(cloud_masked)
+
     # sample points
     if len(cloud_masked) >= cfgs.num_point:
         idxs = np.random.choice(len(cloud_masked), cfgs.num_point, replace=False)
