@@ -23,10 +23,13 @@ cd /home/upup/graspnetAPI
 sudo pip3 install .
 
 cd /home/upup/graspnet-baseline/pointnet2  
-sudo python3 setup.py install  
+sudo python3 setup.py install  => 不要用這個會報錯!！!！!！
+sudo pip3 install .  => Success
 
 cd /home/upup/graspnet-baseline/knn  
-sudo python3 setup.py install  
+sudo python3 setup.py install  => 不要用這個會報錯!！!！!！
+=> 不要用這個會報錯!！!！!！
+sudo pip3 install .  => Success
 
 *ERROR  
 AttributeError: module 'numpy' has no attribute 'float'.  
@@ -70,6 +73,10 @@ Should be changed to
 CUDAExtension(  
     name='pointnet2._ext_src'  
 https://github.com/facebookresearch/votenet/issues/108
+
+
+# !!!!!!!!!!!!!
+https://github.com/robotdata/docker_graspnet/tree/master
 
 <!-- cd /home/upup/graspnet-baseline/
 mkdir src

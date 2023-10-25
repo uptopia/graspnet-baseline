@@ -102,10 +102,10 @@ class DLO_Grasp():
             b = (pack & 0x000000FF)
             color_masked = np.append(color_masked,[[r,g,b]], axis = 0)
 
-        print("cloud_masked: ", type(cloud_masked), cloud_masked.shape)
-        print("color_masked: ", type(color_masked), color_masked.shape)
-        print(len(cloud_masked), self.num_point)
-        print(type(len(color_masked)), type(self.num_point))
+        # print("cloud_masked: ", type(cloud_masked), cloud_masked.shape)
+        # print("color_masked: ", type(color_masked), color_masked.shape)
+        # print(len(cloud_masked), self.num_point)
+        # print(type(len(color_masked)), type(self.num_point))
         
         # sample points
         if len(cloud_masked) >= self.num_point:
@@ -119,8 +119,8 @@ class DLO_Grasp():
         cloud_sampled = cloud_masked[idxs]
         color_sampled = color_masked[idxs]
 
-        print("cloud_sampled: ", type(cloud_sampled), cloud_sampled.shape)
-        print("color_sampled: ", type(color_sampled), color_sampled.shape)
+        # print("cloud_sampled: ", type(cloud_sampled), cloud_sampled.shape)
+        # print("color_sampled: ", type(color_sampled), color_sampled.shape)
 
         # convert data
         cloud = o3d.geometry.PointCloud()
@@ -133,12 +133,14 @@ class DLO_Grasp():
         end_points['point_clouds'] = cloud_sampled
         end_points['cloud_colors'] = color_sampled
 
-        return end_points, cloud_masked
+        return end_points, cloud
 
-    def get_grasps(self, net, end_points):
+    def get_grasps(self, end_points):
+        print("end_points: ", end_points)
+
         # Forward pass
         with torch.no_grad():
-            end_points = net(end_points)
+            end_points = self.net(end_points)
             grasp_preds = pred_decode(end_points)
         gg_array = grasp_preds[0].detach().cpu().numpy()
         gg = GraspGroup(gg_array)
@@ -165,7 +167,7 @@ class DLO_Grasp():
         if gen:
             end_points, cloud_o3d = self.process_cloud(gen)
     
-        gg = self.get_grasps(self.net, end_points)
+        gg = self.get_grasps(end_points)
         if self.collision_thresh > 0:
             gg = self.collision_detection(gg, np.array(cloud_o3d.points))
         self.vis_grasps(gg, cloud_o3d)

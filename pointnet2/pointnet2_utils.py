@@ -22,8 +22,11 @@ try:
 except:
     import __builtin__ as builtins
 
+# ROOT_DIR = "/home/iclab/work/graspnet-baseline/"
+# sys.path.append(ROOT_DIR)
 try:
     import pointnet2._ext_src as _ext
+    print("import pointnet2._ext_src as _ext")
 except ImportError:
     if not getattr(builtins, "__POINTNET2_SETUP__", False):
         raise ImportError(
