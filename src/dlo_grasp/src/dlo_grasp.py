@@ -17,9 +17,9 @@ import time
 
 class DLO_Grasp():
     def __init__(self):
-        
+        print("DLOGRASP!PPPPPPPPPPPPPPPPPP")
         # net = self.get_net()
-        rospy.init_node('dlo_grasp_node', anonymous=True)
+        rospy.init_node('dlo_grasp_node', anonymous=False)
         rospy.Subscriber('/dlo_cloud_pub', PointCloud2, self.dlo_grasp_cb)
         rospy.spin()
 
@@ -132,8 +132,8 @@ class DLO_Grasp():
         # self.vis_grasps(gg, cloud)
 
 if __name__ == '__main__':
-
-    try:
-        DLO_Grasp()
-    except rospy.ROSInterruptException:
-        pass
+    DLO_Grasp()
+    # try:
+    #     DLO_Grasp()
+    # except rospy.ROSInterruptException:
+    #     pass
