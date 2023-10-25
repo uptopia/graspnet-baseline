@@ -41,8 +41,8 @@ class DLO_Grasp():
         self.checkpoint_path = "/home/iclab/work/graspnet-baseline/logs/log_rs/checkpoint-rs.tar"
         self.num_point = 20000
         self.num_view = 300
-        self.collision_thresh = 0.1
-        self.voxel_size = 0.01
+        self.collision_thresh = 0.05
+        self.voxel_size = 0.005
         #=====Parameters Setting=====#
         self.net = self.get_net()
 
@@ -164,14 +164,14 @@ class DLO_Grasp():
 
     def collision_detection(self, gg, cloud):
         mfcdetector = ModelFreeCollisionDetector(cloud, voxel_size=self.voxel_size)
-        collision_mask = mfcdetector.detect(gg, approach_dist=0.05, collision_thresh=self.collision_thresh)
+        collision_mask = mfcdetector.detect(gg, approach_dist=0.15, collision_thresh=self.collision_thresh)
         gg = gg[~collision_mask]
         return gg
 
     def vis_grasps(self, gg, cloud):
         gg.nms()
         gg.sort_by_score()
-        gg = gg[:50]
+        gg = gg[:25]
         grippers = gg.to_open3d_geometry_list()
         o3d.visualization.draw_geometries([cloud, *grippers])
 
@@ -209,12 +209,14 @@ class DLO_Grasp():
             _, scn_cloud_o3d = self.process_cloud(scn_gen)
     
         cloud_all = o3d.geometry.PointCloud()
-        cloud_all.points = dlo_cloud_o3d.points #o3d.utility.Vector3dVector(cloud_masked.astype(np.float32))
-        cloud_all.colors = dlo_cloud_o3d.colors #o3d.utility.Vector3dVector(color_masked.astype(np.float32))
+        points_tmp = np.concatenate((dlo_cloud_o3d.points, scn_cloud_o3d.points))
+        colors_tmp = np.concatenate((dlo_cloud_o3d.colors, scn_cloud_o3d.colors))
+        cloud_all.points = o3d.utility.Vector3dVector(points_tmp)
+        cloud_all.colors = o3d.utility.Vector3dVector(colors_tmp)
 
         gg = self.get_grasps(end_points)
         if self.collision_thresh > 0:
-            gg = self.collision_detection(gg, np.array(cloud_all.points))#np.concatenate(np.array(dlo_cloud_o3d.points),np.array(scn_cloud_o3d.points)))
+            gg = self.collision_detection(gg, np.array(cloud_all.points))
         self.vis_grasps(gg, cloud_all)
 
 if __name__ == '__main__':
