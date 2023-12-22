@@ -199,7 +199,8 @@ class DLO_Grasp():
         # print(dlo_msg.header.stamp)
         # print(scene_msg.header.stamp)
         assert isinstance(dlo_msg, PointCloud2)
-
+        start = time.time()
+   
         dlo_gen = point_cloud2.read_points_list(dlo_msg, skip_nans=False)
         if dlo_gen:
             end_points, dlo_cloud_o3d = self.process_cloud(dlo_gen)
@@ -217,6 +218,9 @@ class DLO_Grasp():
         gg = self.get_grasps(end_points)
         if self.collision_thresh > 0:
             gg = self.collision_detection(gg, np.array(cloud_all.points))
+        
+        end = time.time()
+        print("DLO grasp pose elapsed time: (sec)", end - start)
         self.vis_grasps(gg, cloud_all)
 
 if __name__ == '__main__':
