@@ -66,6 +66,7 @@ RUN apt update \
         python3-dev \
         python3-setuptools \
         # * tools
+        net-tools \
         libgl1 \
         cmake \
         build-essential \

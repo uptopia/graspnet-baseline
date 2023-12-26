@@ -1,3 +1,17 @@
+## Requirements
+- Python 3
+- PyTorch 1.10.1+cu111
+- Open3d >=0.8  0.17.0
+- TensorBoard 2.3
+- NumPy 1.23.5
+- SciPy 1.10.1
+- Pillow 10.0.0
+- tqdm 4.65.0
+- setuptools 68.2.2
+- protobuf 3.20.3
+
+sudo vim /usr/local/lib/python3.8/dist-packages/torch/utils/tensorboard/__init__.py 
+
 cd docker 
 ./build.sh  
 ./run.sh  

@@ -27,5 +27,6 @@ scikit-image==0.21.0
 autolab_core
 psutil
 pyrealsense2
+protobuf==3.20.3
 # setuptools==58.2.0 #45.2.0
 # opencv-python-headless
