@@ -8,7 +8,8 @@ from torch.autograd import Variable, Function
 
 # from knn_pytorch.knn_pytorch import knn_pytorch
 # import knn_pytorch
-import knn as knn_pytorch
+# import knn as knn_pytorch
+from knn_pytorch import knn_pytorch
 
 def knn(ref, query, k=1):
   """ Compute k nearest neighbors for each query point.
