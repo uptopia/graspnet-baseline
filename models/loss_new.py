@@ -23,7 +23,8 @@ def get_loss(end_points):
     objectness_loss, end_points = compute_objectness_loss(end_points)
     view_loss, end_points = compute_view_loss(end_points)
     grasp_loss, end_points = compute_grasp_loss(end_points)
-    loss = objectness_loss + view_loss + 0.2 * grasp_loss
+    manipulability_loss, end_points = compute_manipulability_loss(end_points)
+    loss = objectness_loss + view_loss + 0.2 * grasp_loss + 0.5 * manipulability_loss
     end_points['loss/overall_loss'] = loss
     return loss, end_points
 
@@ -130,3 +131,22 @@ def compute_grasp_loss(end_points, use_template_in_training=True):
     grasp_loss = grasp_score_loss + grasp_angle_class_loss\
                 + grasp_width_loss + grasp_tolerance_loss
     return grasp_loss, end_points
+
+def compute_manipulability_loss(end_points):
+    print("a")
+    # Generate flange pose (position+orientation)
+
+
+    # Compute IK
+    joint_angles = 0
+
+    # Compute Joint-Limits Score (JL-score)
+    JL_score = 0
+
+    # Compute Singularity Score (S-score)
+    S_score = 0
+
+    # Compute Manipulability Score (M-score)
+    M_score = 0
+    manipulability_loss = m_score
+    return manipulability_loss, end_points
