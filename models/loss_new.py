@@ -148,5 +148,5 @@ def compute_manipulability_loss(end_points):
 
     # Compute Manipulability Score (M-score)
     M_score = 0
-    manipulability_loss = m_score
+    manipulability_loss = M_score
     return manipulability_loss, end_points
