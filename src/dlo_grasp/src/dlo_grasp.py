@@ -14,6 +14,8 @@ import numpy as np
 import open3d as o3d
 from graspnetAPI import GraspGroup
 import message_filters
+from geometry_msgs.msg import Pose
+import tf.transformations as tr
 
 ROOT_DIR = "/home/iclab/work/graspnet-baseline/" #os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
@@ -64,6 +66,8 @@ class DLO_Grasp():
 
         ts = message_filters.ApproximateTimeSynchronizer([dlo_sub, scene_sub], queue_size=10, slop=10, allow_headerless=False)
         ts.registerCallback(self.callback)
+
+        self.grasp_pub = rospy.Publisher('/dlo_grasp', Pose)
         rospy.spin()
 
     def get_net(self):
@@ -219,9 +223,59 @@ class DLO_Grasp():
         if self.collision_thresh > 0:
             gg = self.collision_detection(gg, np.array(cloud_all.points))
         
+        # for t in range(np.size(gg)):
+        #     print(gg[t].score)
+
+        gg.nms()
+        gg.sort_by_score()
+        # print("=========")
+        # for t in range(np.size(gg)):
+        #     print(gg[t].score)
+
+        # print('type(gg):', type(gg), np.size(gg)) #<class 'graspnetAPI.grasp.GraspGroup'>
+        # print(type(gg[0]))#<class 'graspnetAPI.grasp.Grasp'> :Grasp(score, width, height, depth, translation, rotation_matrix, object_id)
+        print('score: ', gg[0].score)
+        print('width: ', gg[0].width)
+        print('height: ', gg[0].height)
+        print('depth: ', gg[0].depth)
+        print('translation: ', gg[0].translation)
+        print('rotation_matrix: ', gg[0].rotation_matrix)
+        print('object_id: ', gg[0].object_id)
+
+        #Grasp: score:0.0945352166891098, width:0.04796336218714714, height:0.019999999552965164, depth:0.009999999776482582, translation:[0. 0. 0.]
+        # rotation:
+        # [[ 8.5445970e-01  3.7061375e-02 -5.1819408e-01]
+        # [-5.1770735e-01 -2.2455113e-02 -8.5526299e-01]
+        # [-4.3333333e-02  9.9906063e-01 -4.3670326e-08]]
+        # object id:-1
+
+        # # see /graspnetAPI/docs/source/example_eval.rst
+        # gg=GraspGroup(np.array([[score_1, width_1, height_1, depth_1, rotation_matrix_1(9), translation_1(3), object_id_1],
+        #                         ...,
+        #                         [score_N, width_N, height_N, depth_N, rotation_matrix_N(9), translation_N(3), object_id_N]]))
+        # gg.save_npy(save_path)
+
+        #--publish Pose (objInCam) cam_H_obj--#
+        grasp_pose = Pose()
+        grasp_pose.position.x = gg[0].translation[0]
+        grasp_pose.position.y = gg[0].translation[1]
+        grasp_pose.position.z = gg[0].translation[2]
+
+        matrix4x4=np.identity(4)
+        matrix4x4[:3,:3]=gg[0].rotation_matrix
+        print('matrix4x4:', matrix4x4)
+        q = tr.quaternion_from_matrix(matrix4x4)
+        grasp_pose.orientation.x = q[0]
+        grasp_pose.orientation.y = q[1]
+        grasp_pose.orientation.z = q[2]
+        grasp_pose.orientation.w = q[3]
+        self.grasp_pub.publish(grasp_pose)
+
+        print('grasp_pose:', grasp_pose)
+
         end = time.time()
         print("DLO grasp pose elapsed time: (sec)", end - start)
-        self.vis_grasps(gg, cloud_all)
+        # self.vis_grasps(gg, cloud_all)
 
 if __name__ == '__main__':
     # DLO_Grasp()
