@@ -14,8 +14,9 @@ import numpy as np
 import open3d as o3d
 from graspnetAPI import GraspGroup
 import message_filters
-from geometry_msgs.msg import Pose
-import tf.transformations as tr
+from geometry_msgs.msg import PoseStamped
+import tf.transformations #as tr
+import tf
 
 ROOT_DIR = "/home/iclab/work/graspnet-baseline/" #os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
@@ -37,7 +38,7 @@ from collision_detector import ModelFreeCollisionDetector
 
 class DLO_Grasp():
     def __init__(self):
-        print("DLOGRASP!PPPPPPPPPPPPPPPPPP")
+        print("DLO_GraspPoseInCam")
         
         #=====Parameters Setting=====#
         self.checkpoint_path = "/home/iclab/work/graspnet-baseline/logs/log_rs/checkpoint-rs.tar"
@@ -55,22 +56,29 @@ class DLO_Grasp():
         # # self.vis_grasp = o3d.geometry.li
         # # o3d.visualization.draw_geometries([cloud, *grippers])
 
-        print("nnnnnnnnnnnnnnnnnnnet")
-        rospy.init_node('dlo_grasp_pose', anonymous=False)
+        rospy.init_node('DLO_GraspPoseInCam', anonymous=False)
         # #----1topic---#
-        # rospy.Subscriber('/dlo_cloud', PointCloud2, self.dlo_grasp_cb)
+        # rospy.Subscriber('/dlo_cloudInCam', PointCloud2, self.dlo_grasp_cb)
  
         #----2topics---#
-        dlo_sub = message_filters.Subscriber('/dlo_cloud', PointCloud2)
-        scene_sub = message_filters.Subscriber('/ori_cloud_pub', PointCloud2)
+        dlo_cloudInCam_sub = message_filters.Subscriber('/dlo_cloudInCam', PointCloud2)
+        ori_cloudInCam_sub = message_filters.Subscriber('/ori_cloudInCam', PointCloud2)
 
-        ts = message_filters.ApproximateTimeSynchronizer([dlo_sub, scene_sub], queue_size=10, slop=10, allow_headerless=False)
+        ts = message_filters.ApproximateTimeSynchronizer([dlo_cloudInCam_sub, ori_cloudInCam_sub], queue_size=10, slop=10, allow_headerless=False)
         ts.registerCallback(self.callback)
 
-        self.grasp_pub = rospy.Publisher('/dlo_grasp', Pose)
+        self.dlo_graspInCam_pub = rospy.Publisher('/dlo_graspInCam', PoseStamped)
+
+        self.dlo_graspInCam_br = tf.TransformBroadcaster()
+
         rospy.spin()
 
     def get_net(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """        
         # Init the model
         net = GraspNet(input_feature_dim=0, num_view=self.num_view, num_angle=12, num_depth=4,
                 cylinder_radius=0.05, hmin=-0.02, hmax_list=[0.01,0.02,0.03,0.04], is_training=False)
@@ -99,6 +107,14 @@ class DLO_Grasp():
         return net
     
     def process_cloud(self, gen):
+        """_summary_
+
+        Args:
+            gen (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """        
         # https://answers.ros.org/question/344096/subscribe-pointcloud-and-convert-it-to-numpy-in-python/
         print("process_cloud")
         # print("print(type(gen)):", type(gen))
@@ -156,6 +172,14 @@ class DLO_Grasp():
         return end_points, cloud
 
     def get_grasps(self, end_points):
+        """_summary_
+
+        Args:
+            end_points (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """        
         print("end_points: ", end_points)
 
         # Forward pass
@@ -167,12 +191,27 @@ class DLO_Grasp():
         return gg
 
     def collision_detection(self, gg, cloud):
+        """_summary_
+
+        Args:
+            gg (_type_): _description_
+            cloud (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """        
         mfcdetector = ModelFreeCollisionDetector(cloud, voxel_size=self.voxel_size)
         collision_mask = mfcdetector.detect(gg, approach_dist=0.15, collision_thresh=self.collision_thresh)
         gg = gg[~collision_mask]
         return gg
 
     def vis_grasps(self, gg, cloud):
+        """_summary_
+
+        Args:
+            gg (_type_): _description_
+            cloud (_type_): _description_
+        """        
         gg.nms()
         gg.sort_by_score()
         gg = gg[:25]
@@ -185,6 +224,11 @@ class DLO_Grasp():
         # self.o3d_vis.update_renderer()
 
     def dlo_grasp_cb(self, cloud_msg):
+        """_summary_
+
+        Args:
+            cloud_msg (_type_): _description_
+        """        
         print("dlo_grasp_cb:")
         assert isinstance(cloud_msg, PointCloud2)
 
@@ -199,6 +243,13 @@ class DLO_Grasp():
 
     
     def callback(self, dlo_msg, scene_msg):
+        """_summary_
+
+        Args:
+            dlo_msg (_type_): _description_
+            scene_msg (_type_): _description_
+        """        
+
         print("dlo_grasp_cb:")
         # print(dlo_msg.header.stamp)
         # print(scene_msg.header.stamp)
@@ -256,22 +307,32 @@ class DLO_Grasp():
         # gg.save_npy(save_path)
 
         #--publish Pose (objInCam) cam_H_obj--#
-        grasp_pose = Pose()
-        grasp_pose.position.x = gg[0].translation[0]
-        grasp_pose.position.y = gg[0].translation[1]
-        grasp_pose.position.z = gg[0].translation[2]
+        dlo_graspInCam = PoseStamped()
+        dlo_graspInCam.header.stamp = dlo_msg.header.stamp#rospy.Time.now()
+        dlo_graspInCam.header.frame_id = 'camera_color_optical_frame'
+
+        dlo_graspInCam.pose.position.x = gg[0].translation[0]
+        dlo_graspInCam.pose.position.y = gg[0].translation[1]
+        dlo_graspInCam.pose.position.z = gg[0].translation[2]
 
         matrix4x4=np.identity(4)
         matrix4x4[:3,:3]=gg[0].rotation_matrix
         print('matrix4x4:', matrix4x4)
-        q = tr.quaternion_from_matrix(matrix4x4)
-        grasp_pose.orientation.x = q[0]
-        grasp_pose.orientation.y = q[1]
-        grasp_pose.orientation.z = q[2]
-        grasp_pose.orientation.w = q[3]
-        self.grasp_pub.publish(grasp_pose)
+        q = tf.transformations.quaternion_from_matrix(matrix4x4)
+        dlo_graspInCam.pose.orientation.x = q[0]
+        dlo_graspInCam.pose.orientation.y = q[1]
+        dlo_graspInCam.pose.orientation.z = q[2]
+        dlo_graspInCam.pose.orientation.w = q[3]
+        self.dlo_graspInCam_pub.publish(dlo_graspInCam)
 
-        print('grasp_pose:', grasp_pose)
+        print('dlo_graspInCam:', dlo_graspInCam)
+
+        # add a dlo_obj frame (cam_H_dlo)
+        self.dlo_graspInCam_br.sendTransform((dlo_graspInCam.pose.position.x, dlo_graspInCam.pose.position.y, dlo_graspInCam.pose.position.z),
+                                        (dlo_graspInCam.pose.orientation.x, dlo_graspInCam.pose.orientation.y, dlo_graspInCam.pose.orientation.z, dlo_graspInCam.pose.orientation.w),
+                                        dlo_graspInCam.header.stamp, #rospy.Time.now(),
+                                        "dlo_graspInCam_frame", 
+                                        "camera_color_optical_frame") #camera_link
 
         end = time.time()
         print("DLO grasp pose elapsed time: (sec)", end - start)
