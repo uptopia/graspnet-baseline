@@ -150,7 +150,7 @@ class GraspNetDataset(Dataset):
             idxs = np.concatenate([idxs1, idxs2], axis=0)
         cloud_sampled = cloud_masked[idxs]
         color_sampled = color_masked[idxs]
-        
+
         ret_dict = {}
         ret_dict['point_clouds'] = cloud_sampled.astype(np.float32)
         ret_dict['cloud_colors'] = color_sampled.astype(np.float32)
@@ -203,7 +203,7 @@ class GraspNetDataset(Dataset):
         seg_sampled = seg_masked[idxs]
         objectness_label = seg_sampled.copy()
         objectness_label[objectness_label>1] = 1
-        
+
         object_poses_list = []
         grasp_points_list = []
         grasp_offsets_list = []
@@ -237,10 +237,10 @@ class GraspNetDataset(Dataset):
             tolerance = tolerance[idxs].copy()
             tolerance[collision] = 0
             grasp_tolerance_list.append(tolerance)
-        
+
         if self.augment:
             cloud_sampled, object_poses_list = self.augment_data(cloud_sampled, object_poses_list)
-        
+
         ret_dict = {}
         ret_dict['point_clouds'] = cloud_sampled.astype(np.float32)
         ret_dict['cloud_colors'] = color_sampled.astype(np.float32)
@@ -262,8 +262,12 @@ def load_grasp_labels(root):
         valid_obj_idxs.append(i + 1) #here align with label png
         label = np.load(os.path.join(root, 'grasp_label', '{}_labels.npz'.format(str(i).zfill(3))))
         tolerance = np.load(os.path.join(BASE_DIR, 'tolerance', '{}_tolerance.npy'.format(str(i).zfill(3))))
-        grasp_labels[i + 1] = (label['points'].astype(np.float32), label['offsets'].astype(np.float32),
-                                label['scores'].astype(np.float32), tolerance)
+        grasp_labels[i + 1] = (
+            label['points'].astype(np.float32), # (3459, 3)
+            label['offsets'].astype(np.float32),# (3459, 300, 12, 4, 3)
+            label['scores'].astype(np.float32), # (3459, 300, 12, 4)
+            tolerance                           # (3459, 300, 12, 4)
+        )
 
     return valid_obj_idxs, grasp_labels
 
@@ -274,7 +278,7 @@ def collate_fn(batch):
         return {key:collate_fn([d[key] for d in batch]) for key in batch[0]}
     elif isinstance(batch[0], container_abcs.Sequence):
         return [[torch.from_numpy(sample) for sample in b] for b in batch]
-    
+
     raise TypeError("batch must contain tensors, dicts or lists; found {}".format(type(batch[0])))
 
 if __name__ == "__main__":

@@ -18,10 +18,21 @@ sys.path.append(os.path.join(ROOT_DIR, 'utils'))
 sys.path.append(os.path.join(ROOT_DIR, 'pointnet2'))
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 sys.path.append(os.path.join(ROOT_DIR, 'dataset'))
+sys.path.append(os.path.join(ROOT_DIR, 'prof'))
 from graspnet import GraspNet, get_loss
 from pytorch_utils import BNMomentumScheduler
-from graspnet_dataset import GraspNetDataset, collate_fn, load_grasp_labels
 from label_generation import process_grasp_labels
+from prof import memstat
+
+LAZY_MODE_ENABLED = False
+
+if LAZY_MODE_ENABLED == False:
+    # --- original code (use memory up to 40GB)---#
+    # https://blog.csdn.net/qq_38056431/article/details/123208602
+    from graspnet_dataset import GraspNetDataset, collate_fn, load_grasp_labels
+else:
+    # --- tolerance label load when needed ---#
+    from graspnet_dataset_lazy import GraspNetDataset, collate_fn, load_grasp_labels, load_grasp_labels_list
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset_root', required=True, help='Dataset root')
@@ -45,7 +56,7 @@ EPOCH_CNT = 0
 LR_DECAY_STEPS = [int(x) for x in cfgs.lr_decay_steps.split(',')]
 LR_DECAY_RATES = [float(x) for x in cfgs.lr_decay_rates.split(',')]
 assert(len(LR_DECAY_STEPS)==len(LR_DECAY_RATES))
-DEFAULT_CHECKPOINT_PATH = os.path.join(cfgs.log_dir, 'checkpoint.tar')
+DEFAULT_CHECKPOINT_PATH = os.path.join(cfgs.log_dir, 'checkpoint-rs.tar')
 CHECKPOINT_PATH = cfgs.checkpoint_path if cfgs.checkpoint_path is not None \
     else DEFAULT_CHECKPOINT_PATH
 
@@ -65,16 +76,38 @@ def my_worker_init_fn(worker_id):
     pass
 
 # Create Dataset and Dataloader
-valid_obj_idxs, grasp_labels = load_grasp_labels(cfgs.dataset_root)
-TRAIN_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, grasp_labels, camera=cfgs.camera, split='train', num_points=cfgs.num_point, remove_outlier=True, augment=True)
-TEST_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, grasp_labels, camera=cfgs.camera, split='test_seen', num_points=cfgs.num_point, remove_outlier=True, augment=False)
+print("Before DATASET...")
+print("LAZY_MODE_ENABLED: ", LAZY_MODE_ENABLED)
+if LAZY_MODE_ENABLED == False:
+    valid_obj_idxs, grasp_labels = load_grasp_labels(cfgs.dataset_root)
+    TRAIN_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, grasp_labels, camera=cfgs.camera, split='train', num_points=cfgs.num_point, remove_outlier=True, augment=True)
+    print("TRAIN_DATASET...")
+    memstat()
+    TEST_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, grasp_labels, camera=cfgs.camera, split='test_seen', num_points=cfgs.num_point, remove_outlier=True, augment=False)
+    print("TEST_DATASET...")
+    memstat()
+else:
+    valid_obj_idxs, grasp_labels_list = load_grasp_labels_list(cfgs.dataset_root)
+    TRAIN_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, None, grasp_labels_list, camera=cfgs.camera, split='train', num_points=cfgs.num_point, remove_outlier=True, augment=True)
+    print("TRAIN_DATASET...")
+    memstat()
+    TEST_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, None, grasp_labels_list, camera=cfgs.camera, split='test_seen', num_points=cfgs.num_point, remove_outlier=True, augment=False)
+    print("TEST_DATASET...")
+    memstat()
 
-print(len(TRAIN_DATASET), len(TEST_DATASET))
+print("Before DATALOADER...")
+memstat()
 TRAIN_DATALOADER = DataLoader(TRAIN_DATASET, batch_size=cfgs.batch_size, shuffle=True,
     num_workers=4, worker_init_fn=my_worker_init_fn, collate_fn=collate_fn)
+print("TRAIN_DATALOADER...")
+memstat()
 TEST_DATALOADER = DataLoader(TEST_DATASET, batch_size=cfgs.batch_size, shuffle=False,
     num_workers=4, worker_init_fn=my_worker_init_fn, collate_fn=collate_fn)
-print(len(TRAIN_DATALOADER), len(TEST_DATALOADER))
+print("TEST_DATALOADER...")
+memstat()
+print("Dataset size (train, test):", len(TRAIN_DATASET), len(TEST_DATASET))           #25600 7680
+print("Dataloader size (train, test):", len(TRAIN_DATALOADER), len(TEST_DATALOADER))  #12800 3840
+
 # Init the model and optimzier
 net = GraspNet(input_feature_dim=0, num_view=cfgs.num_view, num_angle=12, num_depth=4,
                         cylinder_radius=0.05, hmin=-0.02, hmax_list=[0.01,0.02,0.03,0.04])
@@ -90,7 +123,10 @@ if CHECKPOINT_PATH is not None and os.path.isfile(CHECKPOINT_PATH):
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     start_epoch = checkpoint['epoch']
+    start_epoch=17
     log_string("-> loaded checkpoint %s (epoch: %d)"%(CHECKPOINT_PATH, start_epoch))
+else:
+    print("-> no checkpoint to load")
 # Decay Batchnorm momentum from 0.5 to 0.999
 # note: pytorch's BN momentum (default 0.1)= 1 - tensorflow's BN momentum
 BN_MOMENTUM_INIT = 0.5
@@ -118,6 +154,7 @@ TEST_WRITER = SummaryWriter(os.path.join(cfgs.log_dir, 'test'))
 # ------------------------------------------------------------------------- GLOBAL CONFIG END
 
 def train_one_epoch():
+    memstat()
     stat_dict = {} # collect statistics
     adjust_learning_rate(optimizer, EPOCH_CNT)
     bnm_scheduler.step() # decay BN momentum
@@ -134,9 +171,24 @@ def train_one_epoch():
 
         # Forward pass
         end_points = net(batch_data_label)
-
+        # print('end_points.keys():', end_points.keys())
+        # print("end_points['input_xyz']:", end_points['input_xyz'])
+        # print(end_points['input_xyz'].shape, end_points['input_xyz'].size) #torch.Size([2, 20000, 3])
+        # print("end_points['batch_grasp_point']:", end_points['batch_grasp_point'])
+        # print(end_points['batch_grasp_point'].shape, end_points['batch_grasp_point'].size)
+        # tmp_end_points_np = end_points['batch_grasp_point'].detach().cpu().numpy()
+        # print(tmp_end_points_np)
+        # print(tmp_end_points_np.shape)
+        # print(end_points['batch_grasp_point'][0][0])
+        #for i in range(len(end_points['batch_grasp_point'][0])):
+        #    print("i=", i)
+        #    print(end_points['batch_grasp_point'][0][i].detach().cpu().numpy(), end_points['batch_grasp_point'][1][i].detach().cpu().numpy())
+        # print("end_points['input_features']:", end_points['input_features']) #torch.Size([2, 1024, 3])
+        
         # Compute loss and gradients, update parameters.
         loss, end_points = get_loss(end_points)
+        print('loss in train_one_epoch:', loss, type(end_points))
+        
         loss.backward()
         if (batch_idx+1) % 1 == 0:
             optimizer.step()
@@ -193,6 +245,7 @@ def evaluate_one_epoch():
 
 
 def train(start_epoch):
+    memstat()
     global EPOCH_CNT 
     min_loss = 1e10
     loss = 0
@@ -205,8 +258,12 @@ def train(start_epoch):
         # Reset numpy seed.
         # REF: https://github.com/pytorch/pytorch/issues/5059
         np.random.seed()
+
+        print("--------train_one_epoch--------")
         train_one_epoch()
+        print("--------evaluate_one_epoch--------")
         loss = evaluate_one_epoch()
+        print("--------save checkpoint--------")
         # Save checkpoint
         save_dict = {'epoch': epoch+1, # after training one epoch, the start_epoch should be epoch+1
                     'optimizer_state_dict': optimizer.state_dict(),
@@ -217,6 +274,7 @@ def train(start_epoch):
         except:
             save_dict['model_state_dict'] = net.state_dict()
         torch.save(save_dict, os.path.join(cfgs.log_dir, 'checkpoint.tar'))
+        print("checkpoint saved: ", os.path.join(cfgs.log_dir, 'checkpoint.tar'))
 
 if __name__=='__main__':
     train(start_epoch)
