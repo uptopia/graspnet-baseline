@@ -155,8 +155,9 @@ def collision_detection(gg, cloud):
 
 def vis_grasps(gg, cloud):
     gg.nms()
-    gg.sort_by_score()
-    gg = gg[:50]
+    # - reverse: bool of order, if False, from high to low, if True, from low to high.
+    gg.sort_by_score(reverse=False)
+    gg = gg[:50]  # return top 50 grasps  
     grippers = gg.to_open3d_geometry_list()
     o3d.visualization.draw_geometries([cloud, *grippers])
 
@@ -166,7 +167,9 @@ def demo(data_dir):
     gg = get_grasps(net, end_points)
     if cfgs.collision_thresh > 0:
         gg = collision_detection(gg, np.array(cloud.points))
-    vis_grasps(gg, cloud)
+
+    # show top 50 grasps
+    vis_grasps(gg, cloud)        
 
 def cam_input():
     # create a pipline
