@@ -17,6 +17,7 @@ docker run --privileged \
     -v /etc/localtime:/etc/localtime:ro \
     -v /dev:/dev \
     -v ${WS_PATH}:/home/${user}/work \
-    -it --name grasp_net "${DOCKER_HUB_USER}"/"${IMAGE}"
+    -it --name "grasp_net" "upup"/"${IMAGE}"
+
     #-it --name "${CONTAINER}" "${DOCKER_HUB_USER}"/"${IMAGE}"
 

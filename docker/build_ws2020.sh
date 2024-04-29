@@ -8,7 +8,8 @@ source "$(dirname "$(readlink -f "${0}")")/get_param.sh"
 IMAGE="grasp_net"
 
 # Build docker images
-docker build -t "${DOCKER_HUB_USER}"/"${IMAGE}" \
+#docker build -t "${DOCKER_HUB_USER}"/"${IMAGE}" \
+docker build -t "upup"/"${IMAGE}" \
     --build-arg USER="${user}" \
     --build-arg UID="${uid}" \
     --build-arg GROUP="${group}" \

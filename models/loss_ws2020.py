@@ -20,6 +20,8 @@ from loss_utils import GRASP_MAX_WIDTH, GRASP_MAX_TOLERANCE, THRESH_GOOD, THRESH
                        batch_viewpoint_params_to_matrix, huber_loss
 
 def get_loss(end_points):
+    #print("end_points:", type(end_points))
+    #print("dict:", end_points.keys())
     objectness_loss, end_points = compute_objectness_loss(end_points)
     view_loss, end_points = compute_view_loss(end_points)
     grasp_loss, end_points = compute_grasp_loss(end_points)
