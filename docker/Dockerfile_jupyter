@@ -1,0 +1,102 @@
+FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu20.04
+
+############################## SYSTEM PARAMETERS ##############################
+# * Arguments
+ARG USER=initial
+ARG GROUP=initial
+ARG UID=1000
+ARG GID="${UID}"
+ARG SHELL=/bin/bash
+ARG HARDWARE=x86_64
+ARG ENTRYPOINT_FILE=entrypint.sh
+
+ENV DEBIAN_FRONTEND noninteractive
+
+# # * Env vars for the nvidia-container-runtime.
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES all
+# ENV NVIDIA_DRIVER_CAPABILITIES graphics,utility,compute
+
+# * Setup users and groups
+RUN groupadd --gid "${GID}" "${GROUP}" \
+    && useradd --gid "${GID}" --uid "${UID}" -ms "${SHELL}" "${USER}" \
+    && mkdir -p /etc/sudoers.d \
+    && echo "${USER}:x:${UID}:${UID}:${USER},,,:/home/${USER}:${SHELL}" >> /etc/passwd \
+    && echo "${USER}:x:${UID}:" >> /etc/group \
+    && echo "${USER} ALL=(ALL) NOPASSWD: ALL" > "/etc/sudoers.d/${USER}" \
+    && chmod 0440 "/etc/sudoers.d/${USER}"
+
+# * Replace apt urls
+# ? Change to tku
+RUN sed -i 's@archive.ubuntu.com@ftp.tku.edu.tw@g' /etc/apt/sources.list
+# ? Change to Taiwan
+# RUN sed -i 's@archive.ubuntu.com@tw.archive.ubuntu.com@g' /etc/apt/sources.list
+
+# * Time zone
+ENV TZ=Asia/Taipei
+RUN ln -snf /usr/share/zoneinfo/"${TZ}" /etc/localtime && echo "${TZ}" > /etc/timezone
+
+############################### INSTALL #######################################
+# * Install packages
+RUN apt update \
+    && apt install -y --no-install-recommends \
+        sudo \
+        vim \
+        git \
+        htop \
+        wget \
+        curl \
+        psmisc \
+        # * Shell
+        tmux \
+        terminator \
+        # * base tools
+        python3-pip \
+        python3-dev \
+        python3-setuptools \
+        # * tools
+        net-tools \
+        libgl1 \
+        cmake \
+        build-essential \
+        software-properties-common \
+        apt-transport-https \
+        python3-netifaces \
+        python3-apt \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --upgrade --force-reinstall pip \
+    && pip3 install jupyterlab \
+        tensorboard==2.3.0 \
+        open3d>=0.8 #0.17.0 \
+        scikit-learn==1.3.0 \
+        scipy==1.10.1 \
+        Pillow==10.0.0 \
+        tqdm==4.65.0 \
+        numpy==1.23.5 \
+        pandas==2.0.3 \
+        matplotlib==3.7.2 \
+        scikit-image==0.21.0 \
+        autolab_core \
+        psutil \
+        pyrealsense2 \
+        protobuf==3.20.3
+
+# PyTorch v1.10.1 CUDA 11.1
+# https://pytorch.org/get-started/previous-versions/
+RUN pip3 install --upgrade --force-reinstall pip \
+    && pip3 install \
+        torch==1.10.1+cu111 \
+        torchvision==0.11.2+cu111 \
+        torchaudio==0.10.1 \
+        -f  https://download.pytorch.org/whl/cu111/torch_stable.html
+
+WORKDIR /
+
+############################## JUPYTER CONFIG ####################################
+# * Move to work folder
+WORKDIR /workspace/
+
+# * Make SSH available
+EXPOSE 8888
