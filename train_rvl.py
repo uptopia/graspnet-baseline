@@ -24,16 +24,6 @@ from pytorch_utils import BNMomentumScheduler
 from label_generation import process_grasp_labels
 from prof import memstat
 
-LAZY_MODE_ENABLED = True
-
-if LAZY_MODE_ENABLED == False:
-    # --- original code (use memory up to 40GB)---#
-    # https://blog.csdn.net/qq_38056431/article/details/123208602
-    from graspnet_dataset import GraspNetDataset, collate_fn, load_grasp_labels
-else:
-    # --- tolerance label load when needed ---#
-    from graspnet_dataset_lazy import GraspNetDataset, collate_fn, load_grasp_labels, load_grasp_labels_list
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset_root', required=True, help='Dataset root')
 parser.add_argument('--camera', required=True, help='Camera split [realsense/kinect]')
@@ -49,7 +39,17 @@ parser.add_argument('--bn_decay_step', type=int, default=2, help='Period of BN d
 parser.add_argument('--bn_decay_rate', type=float, default=0.5, help='Decay rate for BN decay [default: 0.5]')
 parser.add_argument('--lr_decay_steps', default='8,12,16', help='When to decay the learning rate (in epochs) [default: 8,12,16]')
 parser.add_argument('--lr_decay_rates', default='0.1,0.1,0.1', help='Decay rates for lr decay [default: 0.1,0.1,0.1]')
+parser.add_argument('--graspnet_lazy_mode', default='True', help='GraspNet lazy mode enable to load labels when needed [default: True]')
 cfgs = parser.parse_args()
+
+LAZY_MODE_ENABLED = cfgs.graspnet_lazy_mode
+if LAZY_MODE_ENABLED == False:
+    # --- original code (use memory up to 40GB)---#
+    # https://blog.csdn.net/qq_38056431/article/details/123208602
+    from graspnet_dataset import GraspNetDataset, collate_fn, load_grasp_labels
+else:
+    # --- tolerance label load when needed ---#
+    from graspnet_dataset_lazy import GraspNetDataset, collate_fn, load_grasp_labels, load_grasp_labels_list
 
 # ------------------------------------------------------------------------- GLOBAL CONFIG BEG
 EPOCH_CNT = 0
@@ -80,18 +80,18 @@ print("Before DATASET...")
 print("LAZY_MODE_ENABLED: ", LAZY_MODE_ENABLED)
 if LAZY_MODE_ENABLED == False:
     valid_obj_idxs, grasp_labels = load_grasp_labels(cfgs.dataset_root)
-    TRAIN_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, grasp_labels, camera=cfgs.camera, split='train', num_points=cfgs.num_point, remove_outlier=True, augment=True)
+    TRAIN_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, grasp_labels, camera=cfgs.camera, split='train_small', num_points=cfgs.num_point, remove_outlier=True, augment=True)
     print("TRAIN_DATASET...")
     memstat()
-    TEST_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, grasp_labels, camera=cfgs.camera, split='test_seen', num_points=cfgs.num_point, remove_outlier=True, augment=False)
+    TEST_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, grasp_labels, camera=cfgs.camera, split='test_small', num_points=cfgs.num_point, remove_outlier=True, augment=False)
     print("TEST_DATASET...")
     memstat()
 else:
     valid_obj_idxs, grasp_labels_list = load_grasp_labels_list(cfgs.dataset_root)
-    TRAIN_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, None, grasp_labels_list, camera=cfgs.camera, split='train', num_points=cfgs.num_point, remove_outlier=True, augment=True)
+    TRAIN_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, None, grasp_labels_list, camera=cfgs.camera, split='train_small', num_points=cfgs.num_point, remove_outlier=True, augment=True)
     print("TRAIN_DATASET...")
     memstat()
-    TEST_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, None, grasp_labels_list, camera=cfgs.camera, split='test_seen', num_points=cfgs.num_point, remove_outlier=True, augment=False)
+    TEST_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, None, grasp_labels_list, camera=cfgs.camera, split='test_small', num_points=cfgs.num_point, remove_outlier=True, augment=False)
     print("TEST_DATASET...")
     memstat()
 

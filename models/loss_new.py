@@ -133,9 +133,62 @@ def compute_grasp_loss(end_points, use_template_in_training=True):
     return grasp_loss, end_points
 
 def compute_manipulability_loss(end_points):
-    print("a")
-    # Generate flange pose (position+orientation)
+    #see graspnet.py pre_decode()
+    print("compute_manipulability_loss")
 
+    batch_size = len(end_points['point_clouds'])
+    print("batch_size:", batch_size)
+
+    grasp_preds = []
+    # Generate flange pose (position+orientation)
+    for i in range(batch_size):
+        print("==>grasp ID:", i)
+
+        ## load predictions
+        objectness_score = end_points['objectness_score'][i].float()
+        grasp_score = end_points['grasp_score_pred'][i].float()
+        grasp_center = end_points['fp2_xyz'][i].float()
+        approaching = -end_points['grasp_top_view_xyz'][i].float()
+        grasp_angle_class_score = end_points['grasp_angle_cls_pred'][i]
+
+        print("1_grasp_center: ", grasp_center)
+        print("1_approaching: ", approaching)
+
+        ## slice preds by angle
+        # grasp angle
+        grasp_angle_class = torch.argmax(grasp_angle_class_score, 0)
+        grasp_angle = grasp_angle_class.float() / 12 * np.pi
+        # grasp score & width & tolerance
+        grasp_angle_class_ = grasp_angle_class.unsqueeze(0)
+        grasp_score = torch.gather(grasp_score, 0, grasp_angle_class_).squeeze(0)
+
+        ## slice preds by score/depth
+        # grasp depth
+        grasp_depth_class = torch.argmax(grasp_score, 1, keepdims=True)
+        grasp_depth = (grasp_depth_class.float()+1) * 0.01
+        # grasp score & angle & width & tolerance
+        grasp_angle = torch.gather(grasp_angle, 1, grasp_depth_class)
+
+        ## slice preds by objectness
+        objectness_pred = torch.argmax(objectness_score, 0)
+        objectness_mask = (objectness_pred==1)
+        approaching = approaching[objectness_mask]
+        grasp_angle = grasp_angle[objectness_mask]
+        grasp_center = grasp_center[objectness_mask]
+
+        print("2_grasp_center: ", grasp_center)
+        print("2_approaching: ", approaching)
+        print("2_grasp_angle: ", grasp_angle)
+
+        ## convert to rotation matrix
+        Ns = grasp_angle.size(0)
+        approaching_ = approaching.view(Ns, 3)
+        grasp_angle_ = grasp_angle.view(Ns)
+        rotation_matrix = batch_viewpoint_params_to_matrix(approaching_, grasp_angle_)
+        rotation_matrix = rotation_matrix.view(Ns, 9)
+        print("3_approaching: ", approaching)
+        print("3_grasp_angle: ", grasp_angle)
+        print("rotation_matrix: ", rotation_matrix)
 
     # Compute IK
     joint_angles = 0

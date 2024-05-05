@@ -53,6 +53,10 @@ class GraspNetDataset(Dataset):
             self.sceneIds = list( range(130,160) )
         elif split == 'test_novel':
             self.sceneIds = list( range(160,190) )
+        elif split == 'train_small':
+            self.sceneIds = list( range(30))
+        elif split == 'test_small':
+            self.sceneIds = list( range(100,110) )
         self.sceneIds = ['scene_{}'.format(str(x).zfill(4)) for x in self.sceneIds]
 
         self.colorpath = []
