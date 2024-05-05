@@ -26,6 +26,8 @@ from prof import memstat
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset_root', required=True, help='Dataset root')
+parser.add_argument('--train_dataset', required=True, default='train_small', help='Train Dataset type [default: train_small]')
+parser.add_argument('--test_dataset', required=True, default='test_small', help='Test Dataset type [default: test_small]')
 parser.add_argument('--camera', required=True, help='Camera split [realsense/kinect]')
 parser.add_argument('--checkpoint_path', default=None, help='Model checkpoint path [default: None]')
 parser.add_argument('--log_dir', default='log', help='Dump dir to save model checkpoint [default: log]')
@@ -77,21 +79,22 @@ def my_worker_init_fn(worker_id):
 
 # Create Dataset and Dataloader
 print("Before DATASET...")
+print("train_dataset, test_dataset: ", cfgs.train_dataset, cfgs.test_dataset)
 print("LAZY_MODE_ENABLED: ", LAZY_MODE_ENABLED)
 if LAZY_MODE_ENABLED == False:
     valid_obj_idxs, grasp_labels = load_grasp_labels(cfgs.dataset_root)
-    TRAIN_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, grasp_labels, camera=cfgs.camera, split='train_small', num_points=cfgs.num_point, remove_outlier=True, augment=True)
+    TRAIN_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, grasp_labels, camera=cfgs.camera, split=cfgs.train_dataset, num_points=cfgs.num_point, remove_outlier=True, augment=True)
     print("TRAIN_DATASET...")
     memstat()
-    TEST_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, grasp_labels, camera=cfgs.camera, split='test_small', num_points=cfgs.num_point, remove_outlier=True, augment=False)
+    TEST_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, grasp_labels, camera=cfgs.camera, split=cfgs.test_dataset, num_points=cfgs.num_point, remove_outlier=True, augment=False)
     print("TEST_DATASET...")
     memstat()
 else:
     valid_obj_idxs, grasp_labels_list = load_grasp_labels_list(cfgs.dataset_root)
-    TRAIN_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, None, grasp_labels_list, camera=cfgs.camera, split='train_small', num_points=cfgs.num_point, remove_outlier=True, augment=True)
+    TRAIN_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, None, grasp_labels_list, camera=cfgs.camera, split=cfgs.train_dataset, num_points=cfgs.num_point, remove_outlier=True, augment=True)
     print("TRAIN_DATASET...")
     memstat()
-    TEST_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, None, grasp_labels_list, camera=cfgs.camera, split='test_small', num_points=cfgs.num_point, remove_outlier=True, augment=False)
+    TEST_DATASET = GraspNetDataset(cfgs.dataset_root, valid_obj_idxs, None, grasp_labels_list, camera=cfgs.camera, split=cfgs.test_dataset, num_points=cfgs.num_point, remove_outlier=True, augment=False)
     print("TEST_DATASET...")
     memstat()
 
@@ -245,6 +248,7 @@ def evaluate_one_epoch():
 
 
 def train(start_epoch):
+    t_start = datetime.now()
     memstat()
     global EPOCH_CNT 
     min_loss = 1e10
@@ -260,9 +264,14 @@ def train(start_epoch):
         np.random.seed()
 
         print("--------train_one_epoch--------")
+        t1 = datetime.now()
         train_one_epoch()
+        t2 = datetime.now()
         print("--------evaluate_one_epoch--------")
         loss = evaluate_one_epoch()
+        t3 = datetime.now()
+        print("----------->train_one_epoch time:", t2-t1)
+        print("----------->evaluate_one_epoch time:", t3-t2)
         print("--------save checkpoint--------")
         # Save checkpoint
         save_dict = {'epoch': epoch+1, # after training one epoch, the start_epoch should be epoch+1
@@ -275,6 +284,8 @@ def train(start_epoch):
             save_dict['model_state_dict'] = net.state_dict()
         torch.save(save_dict, os.path.join(cfgs.log_dir, 'checkpoint.tar'))
         print("checkpoint saved: ", os.path.join(cfgs.log_dir, 'checkpoint.tar'))
+    t_end = datetime.now()
+    print("----------->training time:", t_end-t_start)
 
 if __name__=='__main__':
     train(start_epoch)
