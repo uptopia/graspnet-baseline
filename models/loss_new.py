@@ -176,7 +176,7 @@ def compute_manipulability_loss(end_points):
         grasp_angle = grasp_angle[objectness_mask]
         grasp_center = grasp_center[objectness_mask]
 
-        print("2_grasp_center: ", grasp_center.numpy()[0])
+        print("2_grasp_center: ", grasp_center.detach().cpu().numpy()[0])
         # print("2_approaching: ", approaching)
         # print("2_grasp_angle: ", grasp_angle)
 
@@ -186,9 +186,9 @@ def compute_manipulability_loss(end_points):
         grasp_angle_ = grasp_angle.view(Ns)
         rotation_matrix = batch_viewpoint_params_to_matrix(approaching_, grasp_angle_)
         rotation_matrix = rotation_matrix.view(Ns, 9)
-        print("3_approaching: ", approaching.numpy()[0])
-        print("3_grasp_angle: ", grasp_angle.numpy()[0])
-        print("rotation_matrix: ", rotation_matrix.numpy()[0])
+        print("3_approaching: ", approaching.detach().cpu().numpy()[0])
+        print("3_grasp_angle: ", grasp_angle.detach().cpu().numpy()[0])
+        print("rotation_matrix: ", rotation_matrix.detach().cpu().numpy()[0])
 
     # Compute IK
     joint_angles = 0
