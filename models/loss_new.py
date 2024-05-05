@@ -151,8 +151,8 @@ def compute_manipulability_loss(end_points):
         approaching = -end_points['grasp_top_view_xyz'][i].float()
         grasp_angle_class_score = end_points['grasp_angle_cls_pred'][i]
 
-        print("1_grasp_center: ", grasp_center)
-        print("1_approaching: ", approaching)
+        # print("1_grasp_center: ", grasp_center)
+        # print("1_approaching: ", approaching)
 
         ## slice preds by angle
         # grasp angle
@@ -176,9 +176,9 @@ def compute_manipulability_loss(end_points):
         grasp_angle = grasp_angle[objectness_mask]
         grasp_center = grasp_center[objectness_mask]
 
-        print("2_grasp_center: ", grasp_center)
-        print("2_approaching: ", approaching)
-        print("2_grasp_angle: ", grasp_angle)
+        print("2_grasp_center: ", grasp_center.numpy()[0])
+        # print("2_approaching: ", approaching)
+        # print("2_grasp_angle: ", grasp_angle)
 
         ## convert to rotation matrix
         Ns = grasp_angle.size(0)
@@ -186,9 +186,9 @@ def compute_manipulability_loss(end_points):
         grasp_angle_ = grasp_angle.view(Ns)
         rotation_matrix = batch_viewpoint_params_to_matrix(approaching_, grasp_angle_)
         rotation_matrix = rotation_matrix.view(Ns, 9)
-        print("3_approaching: ", approaching)
-        print("3_grasp_angle: ", grasp_angle)
-        print("rotation_matrix: ", rotation_matrix)
+        print("3_approaching: ", approaching.numpy()[0])
+        print("3_grasp_angle: ", grasp_angle.numpy()[0])
+        print("rotation_matrix: ", rotation_matrix.numpy()[0])
 
     # Compute IK
     joint_angles = 0
