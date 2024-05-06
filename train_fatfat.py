@@ -115,6 +115,10 @@ print("Dataloader size (train, test):", len(TRAIN_DATALOADER), len(TEST_DATALOAD
 net = GraspNet(input_feature_dim=0, num_view=cfgs.num_view, num_angle=12, num_depth=4,
                         cylinder_radius=0.05, hmin=-0.02, hmax_list=[0.01,0.02,0.03,0.04])
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# total_num_gpus = torch.cuda.device_count()
+# if total_num_gpus > 1:
+#     print("Train with {} GPUs".format(total_num_gpus))
+#     net = torch.nn.DataParallel(net)
 net.to(device)
 # Load the Adam optimizer
 optimizer = optim.Adam(net.parameters(), lr=cfgs.learning_rate, weight_decay=cfgs.weight_decay)
@@ -123,6 +127,11 @@ it = -1 # for the initialize value of `LambdaLR` and `BNMomentumScheduler`
 start_epoch = 0
 if CHECKPOINT_PATH is not None and os.path.isfile(CHECKPOINT_PATH):
     checkpoint = torch.load(CHECKPOINT_PATH)
+    # if total_num_gpus > 1:
+    #     for key_id in list(checkpoint['model_state_dict'].keys()):
+    #         # print(key_id, "---> module." +key_id)
+    #         checkpoint['model_state_dict']['module.'+key_id]=checkpoint['model_state_dict'][key_id]
+    #         del checkpoint['model_state_dict'][key_id]
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     start_epoch = checkpoint['epoch']
@@ -156,7 +165,7 @@ TEST_WRITER = SummaryWriter(os.path.join(cfgs.log_dir, 'test'))
 
 # ------------------------------------------------------------------------- GLOBAL CONFIG END
 
-def train_one_epoch():
+def train_one_epoch(epoch):
     memstat()
     stat_dict = {} # collect statistics
     adjust_learning_rate(optimizer, EPOCH_CNT)
@@ -164,6 +173,8 @@ def train_one_epoch():
     # set model to training mode
     net.train()
     for batch_idx, batch_data_label in enumerate(TRAIN_DATALOADER):
+        # print("batch_idx, ", batch_idx)
+        # print("batch_data_label, ", batch_data_label)
         for key in batch_data_label:
             if 'list' in key:
                 for i in range(len(batch_data_label[key])):
@@ -189,7 +200,7 @@ def train_one_epoch():
         # print("end_points['input_features']:", end_points['input_features']) #torch.Size([2, 1024, 3])
         
         # Compute loss and gradients, update parameters.
-        loss, end_points = get_loss(end_points)
+        loss, end_points = get_loss(end_points, epoch, batch_idx)
         print('loss in train_one_epoch:', loss, type(end_points))
         
         loss.backward()
@@ -211,7 +222,7 @@ def train_one_epoch():
                 log_string('mean %s: %f'%(key, stat_dict[key]/batch_interval))
                 stat_dict[key] = 0
 
-def evaluate_one_epoch():
+def evaluate_one_epoch(epoch):
     stat_dict = {} # collect statistics
     # set model to eval mode (for bn and dp)
     net.eval()
@@ -231,7 +242,7 @@ def evaluate_one_epoch():
             end_points = net(batch_data_label)
 
         # Compute loss
-        loss, end_points = get_loss(end_points)
+        loss, end_points = get_loss(end_points, epoch, batch_idx)
 
         # Accumulate statistics and print out
         for key in end_points:
@@ -265,10 +276,10 @@ def train(start_epoch):
 
         print("--------train_one_epoch--------")
         t1 = datetime.now()
-        train_one_epoch()
+        train_one_epoch(epoch)
         t2 = datetime.now()
         print("--------evaluate_one_epoch--------")
-        loss = evaluate_one_epoch()
+        loss = evaluate_one_epoch(epoch)
         t3 = datetime.now()
         print("----------->train_one_epoch time:", t2-t1)
         print("----------->evaluate_one_epoch time:", t3-t2)

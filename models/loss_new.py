@@ -19,7 +19,8 @@ from loss_utils import GRASP_MAX_WIDTH, GRASP_MAX_TOLERANCE, THRESH_GOOD, THRESH
                        transform_point_cloud, generate_grasp_views,\
                        batch_viewpoint_params_to_matrix, huber_loss
 
-def get_loss(end_points):
+def get_loss(end_points, epoch, batch_idx):
+    print("################# epoch = {}, batch_idx = {}, batch_size = {} #################".format(epoch, batch_idx, len(end_points['point_clouds'])))
     objectness_loss, end_points = compute_objectness_loss(end_points)
     view_loss, end_points = compute_view_loss(end_points)
     grasp_loss, end_points = compute_grasp_loss(end_points)
@@ -137,12 +138,11 @@ def compute_manipulability_loss(end_points):
     print("compute_manipulability_loss")
 
     batch_size = len(end_points['point_clouds'])
-    print("batch_size:", batch_size)
 
     grasp_preds = []
     # Generate flange pose (position+orientation)
     for i in range(batch_size):
-        print("==>grasp ID:", i)
+        print("==>batch ID:", i)
 
         ## load predictions
         objectness_score = end_points['objectness_score'][i].float()
