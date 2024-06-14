@@ -18,11 +18,13 @@ from geometry_msgs.msg import PoseStamped
 import tf.transformations #as tr
 import tf
 
-ROOT_DIR = "/home/iclab/work/graspnet-baseline/" #os.path.dirname(os.path.abspath(__file__))
+curr_dir =  os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = curr_dir[0:curr_dir.find("line")+4]  #"/home/iclab/work/graspnet-baseline/" 
+
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 sys.path.append(os.path.join(ROOT_DIR, 'dataset'))
 sys.path.append(os.path.join(ROOT_DIR, 'utils'))
-print(ROOT_DIR, os.path.join(ROOT_DIR, 'models'))
+
 from graspnet import GraspNet, pred_decode
 from collision_detector import ModelFreeCollisionDetector
 
@@ -41,7 +43,7 @@ class DLO_Grasp():
         print("DLO_GraspPoseInCam")
         
         #=====Parameters Setting=====#
-        self.checkpoint_path = "/home/iclab/work/graspnet-baseline/logs/log_rs/checkpoint-rs.tar"
+        self.checkpoint_path = os.path.join(ROOT_DIR, 'logs/log_rs/checkpoint-rs.tar') #"/home/iclab/work/graspnet-baseline/logs/log_rs/checkpoint-rs.tar"
         self.num_point = 20000
         self.num_view = 300
         self.collision_thresh = 0.05

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+
+    <node name="show_dataset" pkg="dlo_grasp" type="show_dataset_scene.py" output="screen" respawn="true"/>
+
+    <!-- Open rviz with predefined settings -->
+    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find dlo_grasp)/conf/show_dataset_scene.rviz" respawn="true"/>
+    
+</launch>
