@@ -1,25 +1,23 @@
 #! /usr/bin/env python3
 
-import os, sys
-curr_dir =  os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = curr_dir[0:curr_dir.find("line")+4]  #"/home/iclab/work/graspnet-baseline/" 
-
+import os
+import sys
+import struct
+import numpy as np
+import scipy.io as scio
+from PIL import Image
 
 import rospy
-from sensor_msgs.msg import PointCloud2, PointField
 import std_msgs
 import sensor_msgs
-from cv_bridge import CvBridge
-import cv2
-
-import scipy.io as scio
-import struct
-from PIL import Image
-import numpy as np
 from sensor_msgs import point_cloud2
+from sensor_msgs.msg import PointCloud2, PointField
+
+import cv2
+from cv_bridge import CvBridge
 
 curr_dir =  os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = curr_dir[0:curr_dir.find("line")+4]  #"/home/iclab/work/graspnet-baseline/" 
+ROOT_DIR = curr_dir[0:curr_dir.find("src")+3]  #"/home/iclab/work/" 
 data_dir = os.path.join(ROOT_DIR, 'doc/example_data')#'doc/example_data' #'doc/motor_data/test6' #1~6
 
 sys.path.append(os.path.join(ROOT_DIR, 'models'))

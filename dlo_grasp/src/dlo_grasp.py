@@ -19,7 +19,7 @@ import tf.transformations #as tr
 import tf
 
 curr_dir =  os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = curr_dir[0:curr_dir.find("line")+4]  #"/home/iclab/work/graspnet-baseline/" 
+ROOT_DIR = curr_dir[0:curr_dir.find("src")+3]  #"/home/iclab/work/" 
 
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 sys.path.append(os.path.join(ROOT_DIR, 'dataset'))
