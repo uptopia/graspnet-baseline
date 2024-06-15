@@ -47,10 +47,10 @@ COPY --chown="${USER}":"${GROUP}" --chmod=0775 config config
     # && sudo chmod -R 0775 config
 
 ############################### INSTALL #######################################
-RUN rm /etc/apt/sources.list.d/cuda.list && \
-	rm /etc/apt/sources.list.d/nvidia-ml.list && \
-	apt-key del 7fa2af80 && \
-	apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub
+# RUN rm /etc/apt/sources.list.d/cuda.list && \
+# 	rm /etc/apt/sources.list.d/nvidia-ml.list && \
+# 	apt-key del 7fa2af80 && \
+# 	apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub
 
 # * Install packages
 RUN apt update \
@@ -196,7 +196,7 @@ WORKDIR /home/"${USER}"/work
 # * Make SSH available
 EXPOSE 22
 
-# ENTRYPOINT [ "/entrypoint.sh", "terminator" ]
+ENTRYPOINT [ "/entrypoint.sh", "terminator" ]
 # ENTRYPOINT [ "/entrypoint.sh", "tmux" ]
-ENTRYPOINT [ "/entrypoint.sh", "bash" ]
+# ENTRYPOINT [ "/entrypoint.sh", "bash" ]
 # ENTRYPOINT [ "/entrypoint.sh" ]

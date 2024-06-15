@@ -2,7 +2,7 @@
 
 # Get dependent parameters
 source "$(dirname "$(readlink -f "${0}")")/get_param.sh"
-IMAGE="grasp_net"
+# IMAGE="graspnet"
 
 docker run --privileged \
     --network=host \
@@ -17,7 +17,8 @@ docker run --privileged \
     -v /etc/localtime:/etc/localtime:ro \
     -v /dev:/dev \
     -v ${WS_PATH}:/home/${user}/work \
-    -it --name "grasp_net" "upup"/"${IMAGE}"
+    -it --name "${CONTAINER}" "${DOCKER_HUB_USER}"/"${IMAGE}"
+    # -it --name "graspnet" "upup"/"${IMAGE}"
 
     #-it --name "${CONTAINER}" "${DOCKER_HUB_USER}"/"${IMAGE}"
 
