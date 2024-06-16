@@ -3,6 +3,8 @@
 """
 # https://blog.csdn.net/zhuanzhuxuexi/article/details/132059773
 import os
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+print("ROOT_DIR: " + ROOT_DIR)
 import sys
 import numpy as np
 import open3d as o3d
@@ -71,7 +73,7 @@ def get_and_process_data(data_dir):
     color = np.array(Image.open(os.path.join(data_dir, 'color.png')), dtype=np.float32) / 255.0
     depth = np.array(Image.open(os.path.join(data_dir, 'depth.png')))
     workspace_mask = np.array(Image.open(os.path.join(data_dir, 'workspace_mask.png')))
-    meta = scio.loadmat("/home/iclab/work/graspnet-baseline/doc/example_data/meta.mat") #(os.path.join(data_dir, 'meta.mat'))
+    meta = scio.loadmat(os.path.join(data_dir, 'meta.mat'))
     intrinsic = meta['intrinsic_matrix']
     factor_depth = meta['factor_depth']
 
