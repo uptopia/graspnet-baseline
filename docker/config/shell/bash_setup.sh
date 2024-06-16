@@ -5,7 +5,7 @@
 
 # Write Hello and alias to bashrc
 cat << 'EOF' >> /home/"${1}"/.bashrc
-echo 'Hello Docker!'
+echo 'Hello Docker! GraspNet docker compose'
 
 # Commonly used aliases
 alias eb='vim ~/.bashrc'
