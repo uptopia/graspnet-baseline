@@ -4,6 +4,8 @@
 # source "$(dirname "$(readlink -f "${0}")")/get_param.sh"
 # echo ${WS_PATH}
 
+pip3 install numpy==1.23.5 setuptools==58.2.0
+
 WS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 echo "WS directory: $WS_DIR"
 
