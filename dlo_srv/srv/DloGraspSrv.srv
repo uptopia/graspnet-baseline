@@ -1,0 +1,3 @@
+bool arrived_to_take_pic
+---
+geometry_msgs/PoseStamped grasp_in_cam

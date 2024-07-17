@@ -17,6 +17,7 @@ import message_filters
 from geometry_msgs.msg import PoseStamped
 import tf.transformations #as tr
 import tf
+from dlo_srv.srv import DloGraspSrv, DloGraspSrvRequest
 
 curr_dir =  os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = curr_dir[0:curr_dir.find("src")+3]  #"/home/iclab/work/" 
@@ -69,11 +70,27 @@ class DLO_Grasp():
         ts = message_filters.ApproximateTimeSynchronizer([dlo_cloudInCam_sub, ori_cloudInCam_sub], queue_size=10, slop=10, allow_headerless=False)
         ts.registerCallback(self.callback)
 
+        self.dlo_graspInCam = PoseStamped()
         self.dlo_graspInCam_pub = rospy.Publisher('/dlo_graspInCam', PoseStamped)
 
         self.dlo_graspInCam_br = tf.TransformBroadcaster()
 
+        # s = rospy.Service('dlo_grasp_srv', DloGraspSrv, self.dlo_graspInCam_server)
+
+
         rospy.spin()
+
+    def dlo_graspInCam_server(self, req):
+        print("req.arrived_to_take_pic:", req.arrived_to_take_pic)
+        if req.arrived_to_take_pic == True:
+            print("server===================send dlo_graspInCam\n", self.dlo_graspInCam)
+            # res = DloGraspSrv()
+            # res.grasp_in_cam = self.dlo_graspInCam
+            return self.dlo_graspInCam
+        else:
+            print("not arrived to take pic")
+            return
+
 
     def get_net(self):
         """_summary_
@@ -309,36 +326,38 @@ class DLO_Grasp():
         # gg.save_npy(save_path)
 
         #--publish Pose (objInCam) cam_H_obj--#
-        dlo_graspInCam = PoseStamped()
-        dlo_graspInCam.header.stamp = dlo_msg.header.stamp#rospy.Time.now()
-        dlo_graspInCam.header.frame_id = 'camera_color_optical_frame'
+        # dlo_graspInCam = PoseStamped()
+        self.dlo_graspInCam.header.stamp = dlo_msg.header.stamp#rospy.Time.now()
+        self.dlo_graspInCam.header.frame_id = 'camera_color_optical_frame'
 
-        dlo_graspInCam.pose.position.x = gg[0].translation[0]
-        dlo_graspInCam.pose.position.y = gg[0].translation[1]
-        dlo_graspInCam.pose.position.z = gg[0].translation[2]
+        self.dlo_graspInCam.pose.position.x = gg[0].translation[0]
+        self.dlo_graspInCam.pose.position.y = gg[0].translation[1]
+        self.dlo_graspInCam.pose.position.z = gg[0].translation[2]
 
         matrix4x4=np.identity(4)
         matrix4x4[:3,:3]=gg[0].rotation_matrix
         print('matrix4x4:', matrix4x4)
         q = tf.transformations.quaternion_from_matrix(matrix4x4)
-        dlo_graspInCam.pose.orientation.x = q[0]
-        dlo_graspInCam.pose.orientation.y = q[1]
-        dlo_graspInCam.pose.orientation.z = q[2]
-        dlo_graspInCam.pose.orientation.w = q[3]
-        self.dlo_graspInCam_pub.publish(dlo_graspInCam)
+        self.dlo_graspInCam.pose.orientation.x = q[0]
+        self.dlo_graspInCam.pose.orientation.y = q[1]
+        self.dlo_graspInCam.pose.orientation.z = q[2]
+        self.dlo_graspInCam.pose.orientation.w = q[3]
+        self.dlo_graspInCam_pub.publish(self.dlo_graspInCam)
 
-        print('dlo_graspInCam:', dlo_graspInCam)
+        s = rospy.Service('dlo_grasp_srv', DloGraspSrv, self.dlo_graspInCam_server)
+
+        print('dlo_graspInCam:', self.dlo_graspInCam)
 
         # add a dlo_obj frame (cam_H_dlo)
-        self.dlo_graspInCam_br.sendTransform((dlo_graspInCam.pose.position.x, dlo_graspInCam.pose.position.y, dlo_graspInCam.pose.position.z),
-                                        (dlo_graspInCam.pose.orientation.x, dlo_graspInCam.pose.orientation.y, dlo_graspInCam.pose.orientation.z, dlo_graspInCam.pose.orientation.w),
-                                        dlo_graspInCam.header.stamp, #rospy.Time.now(),
+        self.dlo_graspInCam_br.sendTransform((self.dlo_graspInCam.pose.position.x, self.dlo_graspInCam.pose.position.y, self.dlo_graspInCam.pose.position.z),
+                                        (self.dlo_graspInCam.pose.orientation.x, self.dlo_graspInCam.pose.orientation.y, self.dlo_graspInCam.pose.orientation.z, self.dlo_graspInCam.pose.orientation.w),
+                                        self.dlo_graspInCam.header.stamp, #rospy.Time.now(),
                                         "dlo_graspInCam_frame", 
                                         "camera_color_optical_frame") #camera_link
 
         end = time.time()
         print("DLO grasp pose elapsed time: (sec)", end - start)
-        # self.vis_grasps(gg, cloud_all)
+        #self.vis_grasps(gg, cloud_all)
 
 if __name__ == '__main__':
     # DLO_Grasp()
