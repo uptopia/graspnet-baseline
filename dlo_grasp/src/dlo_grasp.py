@@ -49,8 +49,8 @@ class DLO_Grasp():
         self.checkpoint_path = os.path.join(ROOT_DIR, 'logs/log_rs/checkpoint-rs.tar') #"/home/iclab/work/graspnet-baseline/logs/log_rs/checkpoint-rs.tar"
         self.num_point = 20000
         self.num_view = 300
-        self.collision_thresh = 0.05
-        self.voxel_size = 0.005
+        self.collision_thresh = 0.01 #0.05
+        self.voxel_size = 0.01  #0.005
         #=====Parameters Setting=====#
         self.net = self.get_net()
 
@@ -102,11 +102,7 @@ class DLO_Grasp():
 
 
     def get_net(self):
-        """_summary_
 
-        Returns:
-            _type_: _description_
-        """        
         # Init the model
         net = GraspNet(input_feature_dim=0, num_view=self.num_view, num_angle=12, num_depth=4,
                 cylinder_radius=0.05, hmin=-0.02, hmax_list=[0.01,0.02,0.03,0.04], is_training=False)
@@ -135,14 +131,7 @@ class DLO_Grasp():
         return net
     
     def process_cloud(self, gen):
-        """_summary_
 
-        Args:
-            gen (_type_): _description_
-
-        Returns:
-            _type_: _description_
-        """        
         # https://answers.ros.org/question/344096/subscribe-pointcloud-and-convert-it-to-numpy-in-python/
         # print("process_cloud")
         # print("print(type(gen)):", type(gen))
@@ -200,14 +189,7 @@ class DLO_Grasp():
         return end_points, cloud
 
     def get_grasps(self, end_points):
-        """_summary_
 
-        Args:
-            end_points (_type_): _description_
-
-        Returns:
-            _type_: _description_
-        """        
         # print("end_points: ", end_points)
 
         # Forward pass
@@ -219,37 +201,31 @@ class DLO_Grasp():
         return gg
 
     def collision_detection(self, gg, cloud):
-        """_summary_
 
-        Args:
-            gg (_type_): _description_
-            cloud (_type_): _description_
-
-        Returns:
-            _type_: _description_
-        """        
         mfcdetector = ModelFreeCollisionDetector(cloud, voxel_size=self.voxel_size)
         collision_mask = mfcdetector.detect(gg, approach_dist=0.15, collision_thresh=self.collision_thresh)
+        print("collision_mask", collision_mask)
+        print("np.size(gg)", np.size(gg))
         gg = gg[~collision_mask]
+        print("np.size(gg)", np.size(gg))
         return gg
 
-    def vis_grasps(self, gg, cloud):
-        """_summary_
+    def vis_grasps(self, gg, cloud, show_top_num, windowname):
 
-        Args:
-            gg (_type_): _description_
-            cloud (_type_): _description_
-        """        
-        gg.nms()
-        gg.sort_by_score()
-        if np.size(gg)<100:
-            show_top_num = np.size(gg)
+        # gg.nms()
+        # gg.sort_by_score()
+        if np.size(gg)<show_top_num:
+            num = np.size(gg)
         else:
-            show_top_num=100
-        gg = gg[:show_top_num]#25]
-        # gg=gg[:1]
+            num=show_top_num
+        gg = gg[:num]
+        
         grippers = gg.to_open3d_geometry_list()
-        o3d.visualization.draw_geometries([cloud, *grippers])
+        o3d.visualization.draw_geometries([cloud, *grippers], windowname, \
+            lookat=[ -0.022709501252327787, 0.17799084108354188, 0.40640778473950101 ], \
+            up=[ 0.017900563028521502, -0.88416689576134511, -0.46682809500179911 ], \
+            front=[ 0.10182361226540698, 0.46608747114240157, -0.87885972784586341 ], \
+            zoom=0.33999999999999964)
 
         # self.o3d_vis.update_geometry()
         # self.vis_cloud = cloud
@@ -272,7 +248,7 @@ class DLO_Grasp():
     #     gg = self.get_grasps(end_points)
     #     if self.collision_thresh > 0:
     #         gg = self.collision_detection(gg, np.array(cloud_o3d.points))
-    #     self.vis_grasps(gg, cloud_o3d)
+    #     self.vis_grasps(gg, cloud_o3d, 100, "vis_grasps")
 
     
     def callback(self, dlo_msg, scene_msg):
@@ -387,7 +363,7 @@ class DLO_Grasp():
 
         end = time.time()
         print("DLO grasp pose elapsed time: (sec)", end - start)
-        #self.vis_grasps(gg, cloud_all)
+        #self.vis_grasps(gg, cloud_all, 100, "vis_grasps")
 
     def callback_all(self, all_dlo_msg, scene_msg):
 
@@ -396,93 +372,106 @@ class DLO_Grasp():
         assert isinstance(all_dlo_msg, DloInsClouds)
         start = time.time()
    
-        # dlo_gen = point_cloud2.read_points_list(all_dlo_msg, skip_nans=False)
-        # if dlo_gen:
-        #     end_points, dlo_cloud_o3d = self.process_cloud(dlo_gen)
+        tot_dlo_clouds = len(all_dlo_msg.dlo_clouds)
+        print("tot_dlo_clouds: ", tot_dlo_clouds)
 
-        # scn_gen = point_cloud2.read_points_list(scene_msg, skip_nans=False)
-        # if scn_gen:
-        #     _, scn_cloud_o3d = self.process_cloud(scn_gen)
-    
-        # cloud_all = o3d.geometry.PointCloud()
-        # points_tmp = np.concatenate((dlo_cloud_o3d.points, scn_cloud_o3d.points))
-        # colors_tmp = np.concatenate((dlo_cloud_o3d.colors, scn_cloud_o3d.colors))
-        # cloud_all.points = o3d.utility.Vector3dVector(points_tmp)
-        # cloud_all.colors = o3d.utility.Vector3dVector(colors_tmp)
+        scn_gen = point_cloud2.read_points_list(scene_msg, skip_nans=False)
+        if scn_gen:
+            _, scn_cloud_o3d = self.process_cloud(scn_gen)
 
-        # gg = self.get_grasps(end_points)
+        for n in range(tot_dlo_clouds):
 
-        # gg.nms()
-        # gg.sort_by_score()
+            dlo_gen = point_cloud2.read_points_list(all_dlo_msg.dlo_clouds[n], skip_nans=False)
+            if dlo_gen:
+                end_points, dlo_cloud_o3d = self.process_cloud(dlo_gen)
+        
+            cloud_all = o3d.geometry.PointCloud()
+            # points_tmp = dlo_cloud_o3d.points
+            # colors_tmp = dlo_cloud_o3d.colors
+            points_tmp = np.concatenate((dlo_cloud_o3d.points, scn_cloud_o3d.points))
+            colors_tmp = np.concatenate((dlo_cloud_o3d.colors, scn_cloud_o3d.colors))
+            cloud_all.points = o3d.utility.Vector3dVector(points_tmp)
+            cloud_all.colors = o3d.utility.Vector3dVector(colors_tmp)
 
-        # if (np.size(gg))<5:
-        #     id_max = np.size(gg)
-        # else:
-        #     id_max=5
+            gg = self.get_grasps(end_points)
+            gg.nms()
+            gg.sort_by_score()
+            self.vis_grasps(gg, cloud_all, 15, "before collision")
 
-        # for id in range(id_max):
-        #     print('score: ', gg[id].score)
-        #     print('width: ', gg[id].width)
-        #     print('height: ', gg[id].height)
-        #     print('depth: ', gg[id].depth)
-        #     print('translation: ', gg[id].translation)
-        #     print('rotation_matrix: ', gg[id].rotation_matrix)
-        #     print('object_id: ', gg[id].object_id)
-        #     # print('gg[id][0]:\n',gg[id][0])
-        #     # print(gg[id][0].translation)
-        #     # print(gg[id][0].rotation_matrix)
+            if self.collision_thresh > 0:
+                gg = self.collision_detection(gg, np.array(cloud_all.points))
+            gg.nms()
+            gg.sort_by_score()
+            self.vis_grasps(gg, cloud_all, 15, "after collision")
 
-        #     #Grasp: score:0.0945352166891098, width:0.04796336218714714, height:0.019999999552965164, depth:0.009999999776482582, translation:[0. 0. 0.]
-        #     # rotation:
-        #     # [[ 8.5445970e-01  3.7061375e-02 -5.1819408e-01]
-        #     # [-5.1770735e-01 -2.2455113e-02 -8.5526299e-01]
-        #     # [-4.3333333e-02  9.9906063e-01 -4.3670326e-08]]
-        #     # object id:-1
+            if (np.size(gg))<5:
+                id_max = np.size(gg)
+            else:
+                id_max=5
 
-        #     # # see /graspnetAPI/docs/source/example_eval.rst
-        #     # gg=GraspGroup(np.array([[score_1, width_1, height_1, depth_1, rotation_matrix_1(9), translation_1(3), object_id_1],
-        #     #                         ...,
-        #     #                         [score_N, width_N, height_N, depth_N, rotation_matrix_N(9), translation_N(3), object_id_N]]))
-        #     # gg.save_npy(save_path)
+            for id in range(id_max):
+                print('score: ', gg[id].score)
+                print('width: ', gg[id].width)
+                print('height: ', gg[id].height)
+                print('depth: ', gg[id].depth)
+                print('translation: ', gg[id].translation)
+                print('rotation_matrix: ', gg[id].rotation_matrix)
+                print('object_id: ', gg[id].object_id)
+                # print('gg[id][0]:\n',gg[id][0])
+                # print(gg[id][0].translation)
+                # print(gg[id][0].rotation_matrix)
 
-        #     #--publish Pose (objInCam) cam_H_obj--#
-        #     # dlo_graspInCam = PoseStamped()
-        #     self.dlo_graspInCam.header.stamp = all_dlo_msg.header.stamp#rospy.Time.now()
-        #     self.dlo_graspInCam.header.frame_id = 'camera_color_optical_frame'
+                #Grasp: score:0.0945352166891098, width:0.04796336218714714, height:0.019999999552965164, depth:0.009999999776482582, translation:[0. 0. 0.]
+                # rotation:
+                # [[ 8.5445970e-01  3.7061375e-02 -5.1819408e-01]
+                # [-5.1770735e-01 -2.2455113e-02 -8.5526299e-01]
+                # [-4.3333333e-02  9.9906063e-01 -4.3670326e-08]]
+                # object id:-1
 
-        #     self.dlo_graspInCam.pose.position.x = gg[id].translation[0]
-        #     self.dlo_graspInCam.pose.position.y = gg[id].translation[1]
-        #     self.dlo_graspInCam.pose.position.z = gg[id].translation[2]
+                # # see /graspnetAPI/docs/source/example_eval.rst
+                # gg=GraspGroup(np.array([[score_1, width_1, height_1, depth_1, rotation_matrix_1(9), translation_1(3), object_id_1],
+                #                         ...,
+                #                         [score_N, width_N, height_N, depth_N, rotation_matrix_N(9), translation_N(3), object_id_N]]))
+                # gg.save_npy(save_path)
 
-        #     matrix4x4=np.identity(4)
-        #     matrix4x4[:3,:3]=gg[id].rotation_matrix
-        #     # print('matrix4x4:', matrix4x4)
-        #     q = tf.transformations.quaternion_from_matrix(matrix4x4)
-        #     self.dlo_graspInCam.pose.orientation.x = q[0]
-        #     self.dlo_graspInCam.pose.orientation.y = q[1]
-        #     self.dlo_graspInCam.pose.orientation.z = q[2]
-        #     self.dlo_graspInCam.pose.orientation.w = q[3]
-        #     self.dlo_graspInCam_pub.publish(self.dlo_graspInCam)
+                #--publish Pose (objInCam) cam_H_obj--#
+                # dlo_graspInCam = PoseStamped()
+                self.dlo_graspInCam.header.stamp = all_dlo_msg.header.stamp#rospy.Time.now()
+                self.dlo_graspInCam.header.frame_id = 'camera_color_optical_frame'
 
-        #     broadcaster = tf2_ros.StaticTransformBroadcaster()
-        #     static_transformStamped = TransformStamped()
+                self.dlo_graspInCam.pose.position.x = gg[id].translation[0]
+                self.dlo_graspInCam.pose.position.y = gg[id].translation[1]
+                self.dlo_graspInCam.pose.position.z = gg[id].translation[2]
 
-        #     static_transformStamped.header.stamp = rospy.Time.now()
-        #     static_transformStamped.header.frame_id = "camera_color_optical_frame"
-        #     static_transformStamped.child_frame_id = "dlo_graspInCam_frame"
+                matrix4x4=np.identity(4)
+                matrix4x4[:3,:3]=gg[id].rotation_matrix
+                # print('matrix4x4:', matrix4x4)
+                q = tf.transformations.quaternion_from_matrix(matrix4x4)
+                self.dlo_graspInCam.pose.orientation.x = q[0]
+                self.dlo_graspInCam.pose.orientation.y = q[1]
+                self.dlo_graspInCam.pose.orientation.z = q[2]
+                self.dlo_graspInCam.pose.orientation.w = q[3]
+                self.dlo_graspInCam_pub.publish(self.dlo_graspInCam)
 
-        #     static_transformStamped.transform.translation = self.dlo_graspInCam.pose.position
-        #     static_transformStamped.transform.rotation = self.dlo_graspInCam.pose.orientation
+                broadcaster = tf2_ros.StaticTransformBroadcaster()
+                static_transformStamped = TransformStamped()
 
-        #     broadcaster.sendTransform(static_transformStamped)
+                static_transformStamped.header.stamp = rospy.Time.now()
+                static_transformStamped.header.frame_id = "camera_color_optical_frame"
+                static_transformStamped.child_frame_id = "dlo_graspInCam_frame"
 
-        #     # s = rospy.Service('dlo_grasp_srv', DloGraspSrv, self.dlo_graspInCam_server)
-        #     # print("server s: ", self.s)
-        #     print('dlo_graspInCam:', self.dlo_graspInCam)
+                static_transformStamped.transform.translation = self.dlo_graspInCam.pose.position
+                static_transformStamped.transform.rotation = self.dlo_graspInCam.pose.orientation
 
-        # end = time.time()
-        # print("DLO grasp pose elapsed time: (sec)", end - start)
-        # #self.vis_grasps(gg, cloud_all)
+                broadcaster.sendTransform(static_transformStamped)
+
+                # s = rospy.Service('dlo_grasp_srv', DloGraspSrv, self.dlo_graspInCam_server)
+                # print("server s: ", self.s)
+                print('dlo_graspInCam:', self.dlo_graspInCam)
+
+            end = time.time()
+            print("DLO grasp pose elapsed time: (sec)", end - start)
+            # self.vis_grasps(gg, cloud_all, 100, "vis_grasps")
 
 
 if __name__ == '__main__':
