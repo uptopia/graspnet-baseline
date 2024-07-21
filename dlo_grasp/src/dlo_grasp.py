@@ -14,9 +14,10 @@ import numpy as np
 import open3d as o3d
 from graspnetAPI import GraspGroup
 import message_filters
-from geometry_msgs.msg import PoseStamped
-import tf.transformations #as tr
+from geometry_msgs.msg import PoseStamped, TransformStamped
+# import tf.transformations #as tr
 import tf
+import tf2_ros
 from dlo_srv.srv import DloGraspSrv, DloGraspSrvRequest
 
 curr_dir =  os.path.dirname(os.path.abspath(__file__))
@@ -42,7 +43,7 @@ from collision_detector import ModelFreeCollisionDetector
 class DLO_Grasp():
     def __init__(self):
         print("DLO_GraspPoseInCam")
-        
+
         #=====Parameters Setting=====#
         self.checkpoint_path = os.path.join(ROOT_DIR, 'logs/log_rs/checkpoint-rs.tar') #"/home/iclab/work/graspnet-baseline/logs/log_rs/checkpoint-rs.tar"
         self.num_point = 20000
@@ -60,6 +61,7 @@ class DLO_Grasp():
         # # o3d.visualization.draw_geometries([cloud, *grippers])
 
         rospy.init_node('DLO_GraspPoseInCam', anonymous=False)
+
         # #----1topic---#
         # rospy.Subscriber('/dlo_cloudInCam', PointCloud2, self.dlo_grasp_cb)
  
@@ -73,9 +75,10 @@ class DLO_Grasp():
         self.dlo_graspInCam = PoseStamped()
         self.dlo_graspInCam_pub = rospy.Publisher('/dlo_graspInCam', PoseStamped)
 
-        self.dlo_graspInCam_br = tf.TransformBroadcaster()
+        # self.dlo_graspInCam_br = tf.TransformBroadcaster()
+        self.dlo_graspInCam_br = tf2_ros.StaticTransformBroadcaster()
 
-        # s = rospy.Service('dlo_grasp_srv', DloGraspSrv, self.dlo_graspInCam_server)
+        self.s = rospy.Service('dlo_grasp_srv', DloGraspSrv, self.dlo_graspInCam_server)
 
 
         rospy.spin()
@@ -238,6 +241,7 @@ class DLO_Grasp():
         else:
             show_top_num=100
         gg = gg[:show_top_num]#25]
+        # gg=gg[:1]
         grippers = gg.to_open3d_geometry_list()
         o3d.visualization.draw_geometries([cloud, *grippers])
 
@@ -359,20 +363,32 @@ class DLO_Grasp():
             self.dlo_graspInCam.pose.orientation.w = q[3]
             self.dlo_graspInCam_pub.publish(self.dlo_graspInCam)
 
+            # # add a dlo_obj frame (cam_H_dlo)
+            # self.dlo_graspInCam_br.sendTransform((self.dlo_graspInCam.pose.position.x, self.dlo_graspInCam.pose.position.y, self.dlo_graspInCam.pose.position.z),
+            #                                 (self.dlo_graspInCam.pose.orientation.x, self.dlo_graspInCam.pose.orientation.y, self.dlo_graspInCam.pose.orientation.z, self.dlo_graspInCam.pose.orientation.w),
+            #                                 self.dlo_graspInCam.header.stamp, #rospy.Time.now(),
+            #                                 "dlo_graspInCam_frame", 
+            #                                 "camera_color_optical_frame") #camera_link
+
+            broadcaster = tf2_ros.StaticTransformBroadcaster()
+            static_transformStamped = TransformStamped()
+
+            static_transformStamped.header.stamp = rospy.Time.now()
+            static_transformStamped.header.frame_id = "camera_color_optical_frame"
+            static_transformStamped.child_frame_id = "dlo_graspInCam_frame"
+
+            static_transformStamped.transform.translation = self.dlo_graspInCam.pose.position
+            static_transformStamped.transform.rotation = self.dlo_graspInCam.pose.orientation
+
+            broadcaster.sendTransform(static_transformStamped)
+
             # s = rospy.Service('dlo_grasp_srv', DloGraspSrv, self.dlo_graspInCam_server)
-
+            # print("server s: ", self.s)
             print('dlo_graspInCam:', self.dlo_graspInCam)
-
-            # add a dlo_obj frame (cam_H_dlo)
-            self.dlo_graspInCam_br.sendTransform((self.dlo_graspInCam.pose.position.x, self.dlo_graspInCam.pose.position.y, self.dlo_graspInCam.pose.position.z),
-                                            (self.dlo_graspInCam.pose.orientation.x, self.dlo_graspInCam.pose.orientation.y, self.dlo_graspInCam.pose.orientation.z, self.dlo_graspInCam.pose.orientation.w),
-                                            self.dlo_graspInCam.header.stamp, #rospy.Time.now(),
-                                            "dlo_graspInCam_frame", 
-                                            "camera_color_optical_frame") #camera_link
 
         end = time.time()
         print("DLO grasp pose elapsed time: (sec)", end - start)
-        self.vis_grasps(gg, cloud_all)
+        #self.vis_grasps(gg, cloud_all)
 
 if __name__ == '__main__':
     # DLO_Grasp()
