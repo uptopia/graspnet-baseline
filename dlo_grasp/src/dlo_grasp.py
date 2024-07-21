@@ -200,15 +200,18 @@ class DLO_Grasp():
         gg = GraspGroup(gg_array)
         return gg
 
-    def collision_detection(self, gg, cloud):
+    def collision_detection(self, gg_ori, cloud):
 
         mfcdetector = ModelFreeCollisionDetector(cloud, voxel_size=self.voxel_size)
-        collision_mask = mfcdetector.detect(gg, approach_dist=0.15, collision_thresh=self.collision_thresh)
-        print("collision_mask", collision_mask)
-        print("np.size(gg)", np.size(gg))
-        gg = gg[~collision_mask]
-        print("np.size(gg)", np.size(gg))
-        return gg
+        collision_mask = mfcdetector.detect(gg_ori, approach_dist=0.15, collision_thresh=self.collision_thresh)
+        gg = gg_ori[~collision_mask]
+        rr = gg_ori[collision_mask]
+
+        # print("collision_mask", collision_mask)
+        # print("np.size(gg_ori)", np.size(gg_ori))
+        # print("np.size(gg)", np.size(gg))
+        # print("np.size(rr)", np.size(rr))
+        return gg, rr
 
     def vis_grasps(self, gg, cloud, show_top_num, windowname):
 
@@ -396,13 +399,14 @@ class DLO_Grasp():
             gg = self.get_grasps(end_points)
             gg.nms()
             gg.sort_by_score()
-            self.vis_grasps(gg, cloud_all, 15, "before collision")
+            # self.vis_grasps(gg, cloud_all, 500, "before collision")
 
             if self.collision_thresh > 0:
-                gg = self.collision_detection(gg, np.array(cloud_all.points))
+                gg, rr = self.collision_detection(gg, np.array(cloud_all.points))
             gg.nms()
             gg.sort_by_score()
-            self.vis_grasps(gg, cloud_all, 15, "after collision")
+            # self.vis_grasps(gg, cloud_all, 500, "after collision")
+            # self.vis_grasps(rr, cloud_all, 500, "collision")
 
             if (np.size(gg))<5:
                 id_max = np.size(gg)
