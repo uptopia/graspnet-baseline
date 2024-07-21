@@ -9,6 +9,7 @@ project(dlo_srv)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
+  sensor_msgs
   message_generation
   roscpp
   rospy
@@ -47,12 +48,12 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+# Generate messages in the 'msg' folder
+add_message_files(
+  FILES
+  DloInsClouds.msg
+  # Message2.msg
+)
 
 ## Generate services in the 'srv' folder
 add_service_files(
@@ -71,6 +72,7 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   geometry_msgs
+  sensor_msgs
 )
 
 ################################################
@@ -105,7 +107,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES dlo_srv
- CATKIN_DEPENDS geometry_msgs message_runtime roscpp rospy
+ CATKIN_DEPENDS geometry_msgs sensor_msgs message_runtime roscpp rospy
 #  DEPENDS system_lib
 )
 

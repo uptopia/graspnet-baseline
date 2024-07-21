@@ -19,6 +19,7 @@ from geometry_msgs.msg import PoseStamped, TransformStamped
 import tf
 import tf2_ros
 from dlo_srv.srv import DloGraspSrv, DloGraspSrvRequest
+from dlo_srv.msg import DloInsClouds
 
 curr_dir =  os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = curr_dir[0:curr_dir.find("src")+3]  #"/home/iclab/work/" 
@@ -65,15 +66,20 @@ class DLO_Grasp():
         # #----1topic---#
         # rospy.Subscriber('/dlo_cloudInCam', PointCloud2, self.dlo_grasp_cb)
  
-        #----2topics---#
-        dlo_cloudInCam_sub = message_filters.Subscriber('/dlo_cloudInCam', PointCloud2)
-        ori_cloudInCam_sub = message_filters.Subscriber('/ori_cloudInCam', PointCloud2)
+        # #----1dlo_2topics---#
+        # dlo_cloudInCam_sub = message_filters.Subscriber('/dlo_cloudInCam', PointCloud2)
+        # ori_cloudInCam_sub = message_filters.Subscriber('/ori_cloudInCam', PointCloud2)
+        # ts = message_filters.ApproximateTimeSynchronizer([dlo_cloudInCam_sub, ori_cloudInCam_sub], queue_size=10, slop=10, allow_headerless=False)
+        # ts.registerCallback(self.callback)
 
-        ts = message_filters.ApproximateTimeSynchronizer([dlo_cloudInCam_sub, ori_cloudInCam_sub], queue_size=10, slop=10, allow_headerless=False)
-        ts.registerCallback(self.callback)
+        #----all_dlo_2topics---#
+        all_cloudInCam_sub = message_filters.Subscriber('/all_cloudInCam', DloInsClouds)
+        ori_cloudInCam_sub = message_filters.Subscriber('/ori_cloudInCam', PointCloud2)
+        ts = message_filters.ApproximateTimeSynchronizer([all_cloudInCam_sub, ori_cloudInCam_sub], queue_size=10, slop=10, allow_headerless=False)
+        ts.registerCallback(self.callback_all)
 
         self.dlo_graspInCam = PoseStamped()
-        self.dlo_graspInCam_pub = rospy.Publisher('/dlo_graspInCam', PoseStamped)
+        self.dlo_graspInCam_pub = rospy.Publisher('/dlo_graspInCam', PoseStamped, queue_size=10)
 
         # self.dlo_graspInCam_br = tf.TransformBroadcaster()
         self.dlo_graspInCam_br = tf2_ros.StaticTransformBroadcaster()
@@ -250,33 +256,26 @@ class DLO_Grasp():
         # self.o3d_vis.poll_events()
         # self.o3d_vis.update_renderer()
 
-    def dlo_grasp_cb(self, cloud_msg):
-        """_summary_
+    # def dlo_grasp_cb(self, cloud_msg):
+    #     """_summary_
 
-        Args:
-            cloud_msg (_type_): _description_
-        """        
-        print("dlo_grasp_cb:")
-        assert isinstance(cloud_msg, PointCloud2)
+    #     Args:
+    #         cloud_msg (_type_): _description_
+    #     """        
+    #     print("dlo_grasp_cb:")
+    #     assert isinstance(cloud_msg, PointCloud2)
 
-        gen = point_cloud2.read_points_list(cloud_msg, skip_nans=False)
-        if gen:
-            end_points, cloud_o3d = self.process_cloud(gen)
+    #     gen = point_cloud2.read_points_list(cloud_msg, skip_nans=False)
+    #     if gen:
+    #         end_points, cloud_o3d = self.process_cloud(gen)
     
-        gg = self.get_grasps(end_points)
-        if self.collision_thresh > 0:
-            gg = self.collision_detection(gg, np.array(cloud_o3d.points))
-        self.vis_grasps(gg, cloud_o3d)
+    #     gg = self.get_grasps(end_points)
+    #     if self.collision_thresh > 0:
+    #         gg = self.collision_detection(gg, np.array(cloud_o3d.points))
+    #     self.vis_grasps(gg, cloud_o3d)
 
     
     def callback(self, dlo_msg, scene_msg):
-        """_summary_
-
-        Args:
-            dlo_msg (_type_): _description_
-            scene_msg (_type_): _description_
-        """        
-
         print("dlo_grasp_cb:")
         # print(dlo_msg.header.stamp)
         # print(scene_msg.header.stamp)
@@ -390,8 +389,104 @@ class DLO_Grasp():
         print("DLO grasp pose elapsed time: (sec)", end - start)
         #self.vis_grasps(gg, cloud_all)
 
+    def callback_all(self, all_dlo_msg, scene_msg):
+
+        print("all_dlo_grasp_cb:")
+
+        assert isinstance(all_dlo_msg, DloInsClouds)
+        start = time.time()
+   
+        # dlo_gen = point_cloud2.read_points_list(all_dlo_msg, skip_nans=False)
+        # if dlo_gen:
+        #     end_points, dlo_cloud_o3d = self.process_cloud(dlo_gen)
+
+        # scn_gen = point_cloud2.read_points_list(scene_msg, skip_nans=False)
+        # if scn_gen:
+        #     _, scn_cloud_o3d = self.process_cloud(scn_gen)
+    
+        # cloud_all = o3d.geometry.PointCloud()
+        # points_tmp = np.concatenate((dlo_cloud_o3d.points, scn_cloud_o3d.points))
+        # colors_tmp = np.concatenate((dlo_cloud_o3d.colors, scn_cloud_o3d.colors))
+        # cloud_all.points = o3d.utility.Vector3dVector(points_tmp)
+        # cloud_all.colors = o3d.utility.Vector3dVector(colors_tmp)
+
+        # gg = self.get_grasps(end_points)
+
+        # gg.nms()
+        # gg.sort_by_score()
+
+        # if (np.size(gg))<5:
+        #     id_max = np.size(gg)
+        # else:
+        #     id_max=5
+
+        # for id in range(id_max):
+        #     print('score: ', gg[id].score)
+        #     print('width: ', gg[id].width)
+        #     print('height: ', gg[id].height)
+        #     print('depth: ', gg[id].depth)
+        #     print('translation: ', gg[id].translation)
+        #     print('rotation_matrix: ', gg[id].rotation_matrix)
+        #     print('object_id: ', gg[id].object_id)
+        #     # print('gg[id][0]:\n',gg[id][0])
+        #     # print(gg[id][0].translation)
+        #     # print(gg[id][0].rotation_matrix)
+
+        #     #Grasp: score:0.0945352166891098, width:0.04796336218714714, height:0.019999999552965164, depth:0.009999999776482582, translation:[0. 0. 0.]
+        #     # rotation:
+        #     # [[ 8.5445970e-01  3.7061375e-02 -5.1819408e-01]
+        #     # [-5.1770735e-01 -2.2455113e-02 -8.5526299e-01]
+        #     # [-4.3333333e-02  9.9906063e-01 -4.3670326e-08]]
+        #     # object id:-1
+
+        #     # # see /graspnetAPI/docs/source/example_eval.rst
+        #     # gg=GraspGroup(np.array([[score_1, width_1, height_1, depth_1, rotation_matrix_1(9), translation_1(3), object_id_1],
+        #     #                         ...,
+        #     #                         [score_N, width_N, height_N, depth_N, rotation_matrix_N(9), translation_N(3), object_id_N]]))
+        #     # gg.save_npy(save_path)
+
+        #     #--publish Pose (objInCam) cam_H_obj--#
+        #     # dlo_graspInCam = PoseStamped()
+        #     self.dlo_graspInCam.header.stamp = all_dlo_msg.header.stamp#rospy.Time.now()
+        #     self.dlo_graspInCam.header.frame_id = 'camera_color_optical_frame'
+
+        #     self.dlo_graspInCam.pose.position.x = gg[id].translation[0]
+        #     self.dlo_graspInCam.pose.position.y = gg[id].translation[1]
+        #     self.dlo_graspInCam.pose.position.z = gg[id].translation[2]
+
+        #     matrix4x4=np.identity(4)
+        #     matrix4x4[:3,:3]=gg[id].rotation_matrix
+        #     # print('matrix4x4:', matrix4x4)
+        #     q = tf.transformations.quaternion_from_matrix(matrix4x4)
+        #     self.dlo_graspInCam.pose.orientation.x = q[0]
+        #     self.dlo_graspInCam.pose.orientation.y = q[1]
+        #     self.dlo_graspInCam.pose.orientation.z = q[2]
+        #     self.dlo_graspInCam.pose.orientation.w = q[3]
+        #     self.dlo_graspInCam_pub.publish(self.dlo_graspInCam)
+
+        #     broadcaster = tf2_ros.StaticTransformBroadcaster()
+        #     static_transformStamped = TransformStamped()
+
+        #     static_transformStamped.header.stamp = rospy.Time.now()
+        #     static_transformStamped.header.frame_id = "camera_color_optical_frame"
+        #     static_transformStamped.child_frame_id = "dlo_graspInCam_frame"
+
+        #     static_transformStamped.transform.translation = self.dlo_graspInCam.pose.position
+        #     static_transformStamped.transform.rotation = self.dlo_graspInCam.pose.orientation
+
+        #     broadcaster.sendTransform(static_transformStamped)
+
+        #     # s = rospy.Service('dlo_grasp_srv', DloGraspSrv, self.dlo_graspInCam_server)
+        #     # print("server s: ", self.s)
+        #     print('dlo_graspInCam:', self.dlo_graspInCam)
+
+        # end = time.time()
+        # print("DLO grasp pose elapsed time: (sec)", end - start)
+        # #self.vis_grasps(gg, cloud_all)
+
+
 if __name__ == '__main__':
-    # DLO_Grasp()
+
     try:
         DLO_Grasp()
     except rospy.ROSInterruptException:

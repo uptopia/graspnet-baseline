@@ -55,11 +55,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-## Generate messages in the 'msg' folder
+# # Generate messages in the 'msg' folder
 # add_message_files(
 #   FILES
-#   Message1.msg
-#   Message2.msg
+#   DloInsClouds.msg
 # )
 
 ## Generate services in the 'srv' folder
@@ -75,10 +74,13 @@ find_package(catkin REQUIRED COMPONENTS
 #   Action2.action
 # )
 
-## Generate added messages and services with any dependencies listed here
+# # Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
+#   std_msgs
+#   sensor_msgs
 #   geometry_msgs#   std_msgs#   visualization_msgs
+#   dlo_grasp
 # )
 
 ################################################
@@ -114,7 +116,8 @@ catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES dlo_grasp
 #  CATKIN_DEPENDS cv_bridge image_transport pcl_conversions pcl_ros roscpp rospy sensor_msgs std_msgs visualization_msgs message_runtime
-# CATKIN_DEPENDS rospy message_runtime
+# CATKIN_DEPENDS rospy sensor_msgs message_runtime
+# CATKIN_DEPENDS geometry_msgs sensor_msgs std_msgs message_runtime roscpp rospy
 #  DEPENDS system_lib
 )
 
