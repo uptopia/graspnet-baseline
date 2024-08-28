@@ -18,6 +18,9 @@ from geometry_msgs.msg import PoseStamped, TransformStamped
 # import tf.transformations #as tr
 import tf
 import tf2_ros
+from std_msgs.msg import ColorRGBA, Float32
+from jsk_rviz_plugins.msg import OverlayText
+
 from dlo_srv.srv import DloGraspSrv, DloGraspSrvRequest
 from dlo_srv.msg import DloInsClouds
 
@@ -84,6 +87,7 @@ class DLO_Grasp():
 
         self.dlo_graspInCam = PoseStamped()
         self.dlo_graspInCam_pub = rospy.Publisher('/dlo_graspInCam', PoseStamped, queue_size=10)
+        self.dlo_score_pub = rospy.Publisher('/dlo_grasp_score', OverlayText, queue_size=1)
 
         #=============================
         # tf StaticTransformBroadcaster  
@@ -320,6 +324,27 @@ class DLO_Grasp():
 
                 # self.vis_grasps(gg, cloud_all, 1, "Remove Collision"+str(n)+" Top "+str(1))
 
+                text = OverlayText()
+                text.width = 400
+                text.height = 80
+                text.left = 10
+                text.top = 10
+
+                text.text_size = 12
+                text.line_width = 2
+                text.font = "DejaVu Sans Mono"
+
+                text.text = """Grasp score: %f.
+                M-score: %f.
+                Manipulability score: %f.
+                Manipulability score: %f.
+                """ % (gg[id].score, gg[id].score, gg[id].score, gg[id].score)
+
+                text.fg_color = ColorRGBA(25 / 255.0, 1.0, 240.0 / 255.0, 1.0)
+                text.bg_color = ColorRGBA(0.0, 0.0, 0.0, 0.2)
+
+                self.dlo_score_pub.publish(text)
+
                 #=============================
                 # Publish dlo_graspInCam
                 # PoseStamped() cam_H_obj
@@ -468,6 +493,27 @@ class DLO_Grasp():
             #                         [score_N, width_N, height_N, depth_N, rotation_matrix_N(9), translation_N(3), object_id_N]]))
             # gg.save_npy(save_path)
 
+            text = OverlayText()
+            text.width = 400
+            text.height = 80
+            text.left = 10
+            text.top = 10
+
+            text.text_size = 12
+            text.line_width = 2
+            text.font = "DejaVu Sans Mono"
+
+            text.text = """Grasp score: %f.
+            M-score: %f.
+            Manipulability score: %f.
+            Manipulability score: %f.
+            """ % (gg[id].score, gg[id].score, gg[id].score, gg[id].score)
+
+            text.fg_color = ColorRGBA(25 / 255.0, 1.0, 240.0 / 255.0, 1.0)
+            text.bg_color = ColorRGBA(0.0, 0.0, 0.0, 0.2)
+
+            self.dlo_score_pub.publish(text)
+            
             #=============================
             # Publish dlo_graspInCam
             # PoseStamped() cam_H_obj
