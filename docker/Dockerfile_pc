@@ -128,6 +128,7 @@ RUN apt update \
         ros-$ROS_DISTRO-ddynamic-reconfigure \
         ros-$ROS_DISTRO-rgbd-launch \
         ros-$ROS_DISTRO-catkin \
+        ros-$ROS_DISTRO-jsk-rviz-plugins \
         python3-catkin-tools \ 
         python3-rospkg \
         # # * Install librealsense
