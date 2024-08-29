@@ -64,9 +64,6 @@ class DLO_Grasp():
         # # self.vis_grasp = o3d.geometry.li
         # # o3d.visualization.draw_geometries([cloud, *grippers])
 
-        rospy.init_node('DLO_GraspPoseInCam', anonymous=False)
-
-
         # self.tf_listener = tf.TransformListener()
         # self.tf_buffer = tf2_ros.Buffer()
 
@@ -100,7 +97,6 @@ class DLO_Grasp():
         #=============================
         self.s = rospy.Service('dlo_grasp_srv', DloGraspSrv, self.dlo_graspInCam_server)
 
-        rospy.spin()
 
     def dlo_graspInCam_server(self, req):
         print("req.arrived_to_take_pic:", req.arrived_to_take_pic)
@@ -262,6 +258,27 @@ class DLO_Grasp():
         # self.o3d_vis.poll_events()
         # self.o3d_vis.update_renderer()
 
+    def display_score(self, text_string):
+
+        text = OverlayText()
+
+        text.width  = 400
+        text.height = 80
+        text.left   = 10
+        text.top    = 10
+
+        text.text_size  = 12
+        text.line_width = 2
+        text.font       = "DejaVu Sans Mono"
+
+        text.text = text_string
+
+        text.fg_color = ColorRGBA(25 / 255.0, 1.0, 240.0 / 255.0, 1.0)
+        text.bg_color = ColorRGBA(0.0, 0.0, 0.0, 0.2)
+
+        self.dlo_score_pub.publish(text)
+
+
     def callback_all(self, all_dlo_msg, scene_msg):
 
         print("all_dlo_grasp_cb:")
@@ -324,26 +341,16 @@ class DLO_Grasp():
 
                 # self.vis_grasps(gg, cloud_all, 1, "Remove Collision"+str(n)+" Top "+str(1))
 
-                text = OverlayText()
-                text.width = 400
-                text.height = 80
-                text.left = 10
-                text.top = 10
+                #=============================
+                # Show grasp related scores
+                #=============================
+                text_scores = """Grasp score: %f.
+                            M-score: %f.
+                            Manipulability score: %f.
+                            Manipulability score: %f.
+                            """ % (gg[id].score, gg[id].score, gg[id].score, gg[id].score)
 
-                text.text_size = 12
-                text.line_width = 2
-                text.font = "DejaVu Sans Mono"
-
-                text.text = """Grasp score: %f.
-                M-score: %f.
-                Manipulability score: %f.
-                Manipulability score: %f.
-                """ % (gg[id].score, gg[id].score, gg[id].score, gg[id].score)
-
-                text.fg_color = ColorRGBA(25 / 255.0, 1.0, 240.0 / 255.0, 1.0)
-                text.bg_color = ColorRGBA(0.0, 0.0, 0.0, 0.2)
-
-                self.dlo_score_pub.publish(text)
+                self.display_score(text_scores)
 
                 #=============================
                 # Publish dlo_graspInCam
@@ -493,26 +500,16 @@ class DLO_Grasp():
             #                         [score_N, width_N, height_N, depth_N, rotation_matrix_N(9), translation_N(3), object_id_N]]))
             # gg.save_npy(save_path)
 
-            text = OverlayText()
-            text.width = 400
-            text.height = 80
-            text.left = 10
-            text.top = 10
+            #=============================
+            # Show grasp related scores
+            #=============================
+            text_scores = """Grasp score: %f.
+                        M-score: %f.
+                        Manipulability score: %f.
+                        Manipulability score: %f.
+                        """ % (gg[id].score, gg[id].score, gg[id].score, gg[id].score)
 
-            text.text_size = 12
-            text.line_width = 2
-            text.font = "DejaVu Sans Mono"
-
-            text.text = """Grasp score: %f.
-            M-score: %f.
-            Manipulability score: %f.
-            Manipulability score: %f.
-            """ % (gg[id].score, gg[id].score, gg[id].score, gg[id].score)
-
-            text.fg_color = ColorRGBA(25 / 255.0, 1.0, 240.0 / 255.0, 1.0)
-            text.bg_color = ColorRGBA(0.0, 0.0, 0.0, 0.2)
-
-            self.dlo_score_pub.publish(text)
+            self.display_score(text_scores)
             
             #=============================
             # Publish dlo_graspInCam
@@ -572,8 +569,11 @@ class DLO_Grasp():
 
 if __name__ == '__main__':
 
+    rospy.init_node('DLO_GraspPoseInCam', anonymous=False)
+
     try:
-        DLO_Grasp()
+        dlo_grasp_generator = DLO_Grasp()
+        rospy.spin()
     except rospy.ROSInterruptException:
         pass
 
