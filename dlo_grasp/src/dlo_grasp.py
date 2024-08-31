@@ -451,7 +451,7 @@ class DLO_Grasp():
                 self.dlo_graspInCam.pose.position.y = gg[id].translation[1]
                 self.dlo_graspInCam.pose.position.z = gg[id].translation[2]
 
-                # matrix4x4=np.identity(4)
+                matrix4x4=np.identity(4)
                 # matrix4x4[:3,:3]=gg[id].rotation_matrix #original code
                 # #TODO: check axis definition
                 # # real gripper: blue=z
