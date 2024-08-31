@@ -7,11 +7,13 @@ import rospy
 import os
 import sys
 import time
+import math
 import struct
 import ctypes
 import torch
 import numpy as np
 import open3d as o3d
+import open3d.visualization.gui as gui
 from graspnetAPI import GraspGroup
 import message_filters
 from geometry_msgs.msg import PoseStamped, TransformStamped
@@ -67,18 +69,18 @@ class DLO_Grasp():
         # self.tf_listener = tf.TransformListener()
         # self.tf_buffer = tf2_ros.Buffer()
 
-        # #----1topic---#
-        # rospy.Subscriber('/dlo_cloudInCam', PointCloud2, self.dlo_grasp_cb)
+        #----1topic---#
+        # rospy.Subscriber('/one_dlo_cloudInCam', PointCloud2, self.one_dlo_grasp_cb)
  
         # #----1dlo_2topics---#
-        # dlo_cloudInCam_sub = message_filters.Subscriber('/dlo_cloudInCam', PointCloud2)
-        # ori_cloudInCam_sub = message_filters.Subscriber('/ori_cloudInCam', PointCloud2)
+        # dlo_cloudInCam_sub = message_filters.Subscriber('/one_dlo_cloudInCam', PointCloud2)   #/dlo_cloudInCam
+        # ori_cloudInCam_sub = message_filters.Subscriber('/ori_cloudInCam', PointCloud2)   #/ori_cloudInCam
         # ts = message_filters.ApproximateTimeSynchronizer([dlo_cloudInCam_sub, ori_cloudInCam_sub], queue_size=10, slop=10, allow_headerless=False)
         # ts.registerCallback(self.callback)
 
         #----all_dlo_2topics---#
-        all_cloudInCam_sub = message_filters.Subscriber('/all_cloudInCam', DloInsClouds)
-        ori_cloudInCam_sub = message_filters.Subscriber('/ori_cloudInCam', PointCloud2)
+        all_cloudInCam_sub = message_filters.Subscriber('/all_dlos_cloudInCam', DloInsClouds)    #/all_cloudInCam
+        ori_cloudInCam_sub = message_filters.Subscriber('/ori_cloudInCam', PointCloud2)     #/ori_cloudInCam
         ts = message_filters.ApproximateTimeSynchronizer([all_cloudInCam_sub, ori_cloudInCam_sub], queue_size=10, slop=10, allow_headerless=False)
         ts.registerCallback(self.callback_all)
 
@@ -143,10 +145,10 @@ class DLO_Grasp():
 
         # https://answers.ros.org/question/344096/subscribe-pointcloud-and-convert-it-to-numpy-in-python/
         # print("process_cloud")
-        # print("print(type(gen)):", type(gen))
-        # # print(gen)
-        cloud_masked = np.empty([1,3])
-        color_masked = np.empty([1,3])
+        # print(gen, "\nprint(type(gen)):", type(gen))
+
+        cloud_masked = np.empty([1,3]) #x, y, z
+        color_masked = np.empty([1,3]) #rgb -> r, g, b 
         for idx, g in enumerate(gen):
 
             #==point (x, y, z)==#
@@ -182,10 +184,15 @@ class DLO_Grasp():
         # print("cloud_sampled: ", type(cloud_sampled), cloud_sampled.shape)
         # print("color_sampled: ", type(color_sampled), color_sampled.shape)
 
+        #==============
         # convert data
+        #==============
+        # cloud 輸入的點雲
         cloud = o3d.geometry.PointCloud()
         cloud.points = o3d.utility.Vector3dVector(cloud_masked.astype(np.float32))
         cloud.colors = o3d.utility.Vector3dVector(color_masked.astype(np.float32))
+        
+        # end_points 採樣的點
         end_points = dict()
         cloud_sampled = torch.from_numpy(cloud_sampled[np.newaxis].astype(np.float32))
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -208,11 +215,14 @@ class DLO_Grasp():
         return gg
 
     def collision_detection(self, gg_ori, cloud):
-
+        #============================#
+        #    Collision Detection
+        #    檢查夾爪是否與點雲碰撞
+        #============================#
         mfcdetector = ModelFreeCollisionDetector(cloud, voxel_size=self.voxel_size)
         collision_mask = mfcdetector.detect(gg_ori, approach_dist=0.15, collision_thresh=self.collision_thresh)
-        gg = gg_ori[~collision_mask]
-        rr = gg_ori[collision_mask]
+        gg = gg_ori[~collision_mask]    # grasp collision-free
+        rr = gg_ori[collision_mask]     # grasp collision
 
         # print("collision_mask", collision_mask)
         # print("np.size(gg_ori)", np.size(gg_ori))
@@ -258,8 +268,60 @@ class DLO_Grasp():
         # self.o3d_vis.poll_events()
         # self.o3d_vis.update_renderer()
 
-    def display_score(self, text_string):
+    def vis_grasp_multiport(self, gg, rr, cloud, show_top_num, windowname):
+        # https://github.com/isl-org/Open3D/issues/999
+        # https://blog.csdn.net/m0_37816922/article/details/127231131
+        # https://blog.csdn.net/io569417668/article/details/107013386
 
+        gg_grippers = gg.to_open3d_geometry_list()
+        rr_grippers = rr.to_open3d_geometry_list()
+
+        def make_box():
+            box = o3d.geometry.TriangleMesh.create_box(1, 2, 4)
+            box.compute_vertex_normals()
+            return box
+
+        gui.Application.instance.initialize()
+
+        mat = o3d.visualization.rendering.MaterialRecord()
+        # mat.base_color = (1.0, 0.0, 0.0, 1.0)
+        # mat.shader = "defaultLit"
+
+        w = gui.Application.instance.create_window("Two scenes", 1025, 512)
+        scene1 = gui.SceneWidget()
+        scene1.scene = o3d.visualization.rendering.Open3DScene(w.renderer)
+        scene1.scene.add_geometry("cloud", cloud, mat)
+        for i, mesh in enumerate(gg_grippers):
+            if i > show_top_num: break
+            name = f"mesh_{i}"  # Use unique names for each mesh
+            scene1.scene.add_geometry(name, mesh, mat)
+        scene1.setup_camera(60, scene1.scene.bounding_box, (0, 0, 0))
+        
+        scene2 = gui.SceneWidget()
+        scene2.scene = o3d.visualization.rendering.Open3DScene(w.renderer)
+        scene2.scene.add_geometry("cloud", cloud, mat)
+        for i, mesh in enumerate(rr_grippers):
+            if i > show_top_num: break
+            name = f"mesh_{i}"
+            scene2.scene.add_geometry(name, mesh, mat)
+        scene2.setup_camera(60, scene2.scene.bounding_box, (0, 0, 0))
+
+        w.add_child(scene1)
+        w.add_child(scene2)
+
+        def on_layout(theme):
+            r = w.content_rect
+            scene1.frame = gui.Rect(r.x, r.y, r.width / 2, r.height)
+            scene2.frame = gui.Rect(r.x + r.width / 2 + 1, r.y, r.width / 2, r.height)
+
+        w.set_on_layout(on_layout)
+
+        gui.Application.instance.run()
+
+    def display_score(self, text_string):
+        #============================#
+        # Display score in Rviz
+        #============================#
         text = OverlayText()
 
         text.width  = 400
@@ -278,6 +340,28 @@ class DLO_Grasp():
 
         self.dlo_score_pub.publish(text)
 
+    def one_dlo_grasp_cb(self, one_dlo_cloud_msg):
+        #============================#
+        # Grasp Detection for 1 DLO
+        # 一次針對一個DLO實例點雲做夾取偵測
+        #============================#
+        print("one_dlo_grasp_cb:")
+        assert isinstance(one_dlo_cloud_msg, PointCloud2)
+
+        # 點雲格式轉換, 採樣夾取點
+        one_dlo_gen = point_cloud2.read_points_list(one_dlo_cloud_msg, skip_nans=False)
+        if one_dlo_gen:
+            end_points, cloud_o3d = self.process_cloud(one_dlo_gen)
+    
+        # 於採樣夾取點處, 做夾取偵測
+        gg_all = self.get_grasps(end_points)
+        if self.collision_thresh > 0:
+            gg, rr = self.collision_detection(gg_all, np.array(cloud_o3d.points))
+
+        # 顯示無/有碰撞之夾取姿態
+        self.vis_grasp_multiport(gg, rr, cloud_o3d, 50, "grasps")
+        # self.vis_grasps(gg, cloud_o3d, 100, "grasp collision-free")
+        # self.vis_grasps(rr, cloud_o3d, 100, "grasp collision")
 
     def callback_all(self, all_dlo_msg, scene_msg):
 
@@ -297,6 +381,10 @@ class DLO_Grasp():
         for n in range(tot_dlo_clouds):
 
             # dlo point cloud
+            # #======Input Scene
+            # scn_gen = point_cloud2.read_points_list(scene_msg, skip_nans=False)
+            # end_points, dlo_cloud_o3d = self.process_cloud(scn_gen)
+            # #======
             dlo_gen = point_cloud2.read_points_list(all_dlo_msg.dlo_clouds[n], skip_nans=False)
             if dlo_gen:
                 end_points, dlo_cloud_o3d = self.process_cloud(dlo_gen)
@@ -314,7 +402,7 @@ class DLO_Grasp():
             gg_ori.sort_by_score()
             top_more = 100
             top_less = 5
-            # self.vis_grasps(gg_ori, cloud_all, top_more, "Before Collision #"+str(n)+" Top "+str(top_more))
+            #self.vis_grasps(gg_ori, cloud_all, top_more, "Before Collision #"+str(n)+" Top "+str(top_more))
             # self.vis_grasps(gg_ori, cloud_all, top_less, "Before Collision #"+str(n)+" Top "+str(top_less))
 
             if self.collision_thresh > 0:
@@ -363,8 +451,16 @@ class DLO_Grasp():
                 self.dlo_graspInCam.pose.position.y = gg[id].translation[1]
                 self.dlo_graspInCam.pose.position.z = gg[id].translation[2]
 
-                matrix4x4=np.identity(4)
-                matrix4x4[:3,:3]=gg[id].rotation_matrix
+                # matrix4x4=np.identity(4)
+                # matrix4x4[:3,:3]=gg[id].rotation_matrix #original code
+                # #TODO: check axis definition
+                # # real gripper: blue=z
+                # # code gg rotation_matrix --> red=z
+                # # code need to rotate around y 90 to align with correct real ur5e gripper
+                # # https://silverwind1982.pixnet.net/blog/post/165223625
+                modify_rotation = gg[id].rotation_matrix*self.Ry(math.radians(90))
+                matrix4x4[:3,:3]=modify_rotation
+
                 q = tf.transformations.quaternion_from_matrix(matrix4x4)
                 self.dlo_graspInCam.pose.orientation.x = q[0]
                 self.dlo_graspInCam.pose.orientation.y = q[1]
@@ -408,26 +504,18 @@ class DLO_Grasp():
                 #=============================
                 # ROS Server /dlo_grasp_srv  
                 #=============================
-                # s = rospy.Service('dlo_grasp_srv', DloGraspSrv, self.dlo_graspInCam_server)
-                # print("server s: ", self.s)
+                s = rospy.Service('dlo_grasp_srv', DloGraspSrv, self.dlo_graspInCam_server)
+                print("server s: ", self.s)
 
             end = time.time()
             print("DLO grasp pose elapsed time: (sec)", end - start)
-            # self.vis_grasps(gg, cloud_all, 100, "vis_grasps")
+            #self.vis_grasps(gg, cloud_all, 100, "grasp collision-free")
 
-    # def dlo_grasp_cb(self, cloud_msg):
-    #     print("dlo_grasp_cb:")
-    #     assert isinstance(cloud_msg, PointCloud2)
-
-    #     gen = point_cloud2.read_points_list(cloud_msg, skip_nans=False)
-    #     if gen:
-    #         end_points, cloud_o3d = self.process_cloud(gen)
+    def Ry(self, theta):
+        return np.matrix([[ math.cos(theta), 0, math.sin(theta)],
+                          [ 0           , 1, 0           ],
+                          [-math.sin(theta), 0, math.cos(theta)]])
     
-    #     gg = self.get_grasps(end_points)
-    #     if self.collision_thresh > 0:
-    #         gg = self.collision_detection(gg, np.array(cloud_o3d.points))
-    #     self.vis_grasps(gg, cloud_o3d, 100, "vis_grasps")
-
     def callback(self, dlo_msg, scene_msg):
         print("dlo_grasp_cb:")
         # print(dlo_msg.header.stamp)
@@ -455,7 +543,7 @@ class DLO_Grasp():
 
         gg = self.get_grasps(end_points)
         # if self.collision_thresh > 0:
-        #     gg = self.collision_detection(gg, np.array(cloud_all.points))
+        #     gg, rr = self.collision_detection(gg, np.array(cloud_all.points))
         
         # # for t in range(np.size(gg)):
         # #     print(gg[t].score)
@@ -565,7 +653,7 @@ class DLO_Grasp():
 
         end = time.time()
         print("DLO grasp pose elapsed time: (sec)", end - start)
-        #self.vis_grasps(gg, cloud_all, 100, "vis_grasps")
+        #self.vis_grasps(gg, cloud_all, 100, "grasp collision-free")
 
 if __name__ == '__main__':
 
