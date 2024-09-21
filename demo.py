@@ -16,7 +16,7 @@ from PIL import Image
 import torch
 from graspnetAPI import GraspGroup
 
-# import pyrealsense2 as rs
+# import pyrealsense2 as rs #uncomment if using Method1: Stream Realsense
 import cv2
 import matplotlib.pyplot as plt
 
@@ -205,7 +205,7 @@ def cam_input():
             aligned_depth_img = np.asanyarray(aligned_depth_frame.get_data())
             
             # display 
-            aligned_depth_colormap = cv2.applyColorMap(cv2.converScaleAbs(aligned_depth_img, alpha=0.03), cv2.COLORMAP_JET)
+            aligned_depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(aligned_depth_img, alpha=0.03), cv2.COLORMAP_JET)
             cv2.imshow("Align Depth colormap", aligned_depth_colormap)
             cv2.imshow("aligned depth image", aligned_depth_img)
             cv2.imwrite('/home/iclab/work/graspnet-baseline/doc/stream_rs/depth.png', aligned_depth_img)
